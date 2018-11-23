@@ -105,3 +105,12 @@ For each variable, you may click 'Details' on the top right corner of each graph
 * Women's share of population ages 15+ living with HIV (%)
   * Prevalence of HIV is the percentage of people who are infected with HIV. Female rate is as a percentage of the total population ages 15+ who are living with HIV.
   * [Link](https://data.worldbank.org/indicator/SH.DYN.AIDS.FE.ZS?view=chart)
+
+Generated Variables
+
+* Continents
+  * Continent code generated using country code (using pycountry_convert library)
+* Mortality rate, under-5, Gender Difference
+  * Difference between female and male Mortality rate, under-5,  (female minus male).
+* Life expectancy at birth, Gender Difference
+  * Difference between female and male Life expectancy at birth, (female minus male).
