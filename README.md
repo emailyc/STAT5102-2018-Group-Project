@@ -16,11 +16,11 @@ WONG, Yiu Chung, 1155017920
 ## Variables
 For each variable, you may click 'Details' on the top right corner of each graph for additional information.
 
-* Year (*removed*)
-* YearCode (*removed*)
-* Country Name (*removed*)
-* Country Code (*removed*)
-* ARI treatment (% of children under 5 taken to a health provider) (*removed*)
+* Year (***removed***)
+* YearCode (***removed***)
+* Country Name (***removed***)
+* Country Code (***removed***)
+* ARI treatment (% of children under 5 taken to a health provider) (***removed***)
   * Children with acute respiratory infection (ARI) who are taken to a health provider refers to the percentage of children under age five with ARI in the last two weeks who were taken to an appropriate health provider, including hospital, health center, dispensary, village health worker, clinic, and private physician.
   * [Link](https://data.worldbank.org/indicator/SH.STA.ARIC.ZS?view=chart)
 * Adjusted savings: education expenditure (% of GNI)
@@ -41,13 +41,13 @@ For each variable, you may click 'Details' on the top right corner of each graph
 * Birth rate, crude (per 1,000 people)
   * Crude birth rate indicates the number of live births occurring during the year, per 1,000 population estimated at midyear. Subtracting the crude death rate from the crude birth rate provides the rate of natural increase, which is equal to the rate of population change in the absence of migration.
   * [Link](https://data.worldbank.org/indicator/SP.DYN.CBRT.IN)
-* CPIA gender equality rating (1=low to 6=high) (*removed*)
+* CPIA gender equality rating (1=low to 6=high) (***removed***)
   * Gender equality assesses the extent to which the country has installed institutions and programs to enforce laws and policies that promote equal access for men and women in education, health, the economy, and protection under law.
   * [Link](https://data.worldbank.org/indicator/IQ.CPA.GNDR.XQ)
-* Central government debt, total (% of GDP) (*removed*)
+* Central government debt, total (% of GDP) (***removed***)
   * Debt is the entire stock of direct government fixed-term contractual obligations to others outstanding on a particular date. It includes domestic and foreign liabilities such as currency and money deposits, securities other than shares, and loans. It is the gross amount of government liabilities reduced by the amount of equity and financial derivatives held by the government. Because debt is a stock rather than a flow, it is measured as of a given date, usually the last day of the fiscal year.
   * [Link](https://data.worldbank.org/indicator/GC.DOD.TOTL.GD.ZS?view=chart)
-* Children with fever receiving antimalarial drugs (% of children under age 5 with fever) (*removed*)
+* Children with fever receiving antimalarial drugs (% of children under age 5 with fever) (***removed***)
   * Malaria treatment refers to the percentage of children under age five who were ill with fever in the last two weeks and received any appropriate (locally defined) anti-malarial drugs.
   * [Link](https://data.worldbank.org/indicator/SH.MLR.TRET.ZS?view=chart)
 * Fertility rate, total (births per woman)
@@ -62,7 +62,7 @@ For each variable, you may click 'Details' on the top right corner of each graph
 * GDP per capita, PPP (constant 2011 international $)
   * GDP per capita based on purchasing power parity (PPP). PPP GDP is gross domestic product converted to international dollars using purchasing power parity rates. An international dollar has the same purchasing power over GDP as the U.S. dollar has in the United States. GDP at purchaser's prices is the sum of gross value added by all resident producers in the economy plus any product taxes and minus any subsidies not included in the value of the products. It is calculated without making deductions for depreciation of fabricated assets or for depletion and degradation of natural resources. Data are in constant 2011 international dollars.
   * [Link](https://data.worldbank.org/indicator/NY.GDP.PCAP.PP.KD?view=chart)
-* GINI index (World Bank estimate) (*removed*)
+* GINI index (World Bank estimate) (***removed***)
   * Gini index measures the extent to which the distribution of income (or, in some cases, consumption expenditure) among individuals or households within an economy deviates from a perfectly equal distribution. A Lorenz curve plots the cumulative percentages of total income received against the cumulative number of recipients, starting with the poorest individual or household. The Gini index measures the area between the Lorenz curve and a hypothetical line of absolute equality, expressed as a percentage of the maximum area under the line. Thus a Gini index of 0 represents perfect equality, while an index of 100 implies perfect inequality.
   * [Link](https://data.worldbank.org/indicator/SI.POV.GINI?view=chart)
 * Health expenditure per capita (current US$)
@@ -73,16 +73,16 @@ For each variable, you may click 'Details' on the top right corner of each graph
   * [Link](https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS)
 * Health expenditure, public _ 0001
   * Not available
-* Income share held by lowest 20% (*removed*)
+* Income share held by lowest 20% (***removed***)
   * Percentage share of income or consumption is the share that accrues to subgroups of population indicated by deciles or quintiles. Percentage shares by quintile may not sum to 100 because of rounding.
   * [Link](https://data.worldbank.org/indicator/SI.DST.FRST.20?view=chart)
 * Inflation, GDP deflator (annual %)
   * Inflation as measured by the annual growth rate of the GDP implicit deflator shows the rate of price change in the economy as a whole. The GDP implicit deflator is the ratio of GDP in current local currency to GDP in constant local currency.
   * [Link](https://data.worldbank.org/indicator/NY.GDP.DEFL.KD.ZG?view=chart)
-* Life expectancy at birth, female (years) (*removed*)
+* Life expectancy at birth, female (years) (***removed***)
   * Life expectancy at birth indicates the number of years a newborn infant would live if prevailing patterns of mortality at the time of its birth were to stay the same throughout its life.
   * https://data.worldbank.org/indicator/SP.DYN.LE00.FE.IN?view=chart
-* Life expectancy at birth, male (years) (*removed*)
+* Life expectancy at birth, male (years) (***removed***)
   * Life expectancy at birth indicates the number of years a newborn infant would live if prevailing patterns of mortality at the time of its birth were to stay the same throughout its life.
   * [Link](https://data.worldbank.org/indicator/SP.DYN.LE00.MA.IN?view=chart)
 * Life expectancy at birth, total (years)
@@ -94,10 +94,10 @@ For each variable, you may click 'Details' on the top right corner of each graph
 * Mortality rate, under-5 (per 1,000 live births)
   * Under-five mortality rate is the probability per 1,000 that a newborn baby will die before reaching age five, if subject to age-specific mortality rates of the specified year.
   * [Link](https://data.worldbank.org/indicator/SH.DYN.MORT)
-* Mortality rate, under-5, female (per 1,000 live births) (*removed*)
+* Mortality rate, under-5, female (per 1,000 live births) (***removed***)
   * Under-five mortality rate, female is the probability per 1,000 that a newborn female baby will die before reaching age five, if subject to female age-specific mortality rates of the specified year.
   * [Link](https://data.worldbank.org/indicator/SH.DYN.MORT.FE?view=chart)
-* Mortality rate, under-5, male (per 1,000 live births) (*removed*)
+* Mortality rate, under-5, male (per 1,000 live births) (***removed***)
   * Under-five mortality rate, male is the probability per 1,000 that a newborn male baby will die before reaching age five, if subject to male age-specific mortality rates of the specified year.
   * [Link](https://data.worldbank.org/indicator/SH.DYN.MORT.MA?view=chart)
 * Population growth (annual %)
@@ -109,10 +109,10 @@ For each variable, you may click 'Details' on the top right corner of each graph
 * Immunization, measles (% of children ages 12-23 months)
   * Child immunization, measles, measures the percentage of children ages 12-23 months who received the measles vaccination before 12 months or at any time before the survey. A child is considered adequately immunized against measles after receiving one dose of vaccine.
   * [Link](https://data.worldbank.org/indicator/SH.IMM.MEAS?view=chart)
-* Physicians (per 1,000 people) (*removed*)
+* Physicians (per 1,000 people) (***removed***)
   * Physicians include generalist and specialist medical practitioners.
   * [Link](https://data.worldbank.org/indicator/SH.MED.PHYS.ZS?view=chart)
-* Women's share of population ages 15+ living with HIV (%) (*removed*)
+* Women's share of population ages 15+ living with HIV (%) (***removed***)
   * Prevalence of HIV is the percentage of people who are infected with HIV. Female rate is as a percentage of the total population ages 15+ who are living with HIV.
   * [Link](https://data.worldbank.org/indicator/SH.DYN.AIDS.FE.ZS?view=chart)
 
