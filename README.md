@@ -3,6 +3,13 @@ Final project for 2018R1 Regression in Practice (STAT5102)
 
 You may view the notebook [here](https://nbviewer.jupyter.org/github/emailyc/STAT5102-2018-Group-Project/blob/master/5102%20Project.ipynb?flush_cache=true)
 
+# Contributers
+
+CHAN, Yiu Fung Frankie, 1155010561
+LI Wai Lan, 1155118254
+WONG, Tsz Wing, 1004666311
+WONG, Yiu Chung, 1155017920
+
 ## Variables
 For each variable, you may click 'Details' on the top right corner of each graph for additional information.
 
@@ -106,7 +113,7 @@ For each variable, you may click 'Details' on the top right corner of each graph
   * Prevalence of HIV is the percentage of people who are infected with HIV. Female rate is as a percentage of the total population ages 15+ who are living with HIV.
   * [Link](https://data.worldbank.org/indicator/SH.DYN.AIDS.FE.ZS?view=chart)
 
-Generated Variables
+**Generated Variables**
 
 * Continents
   * Continent code generated using country code (using pycountry_convert library)
