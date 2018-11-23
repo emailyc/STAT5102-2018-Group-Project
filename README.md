@@ -29,8 +29,8 @@ For each variable, you may click 'Details' on the top right corner of each graph
   * Agricultural land refers to the share of land area that is arable, under permanent crops, and under permanent pastures. Arable land includes land defined by the FAO as land under temporary crops (double-cropped areas are counted once), temporary meadows for mowing or for pasture, land under market or kitchen gardens, and land temporarily fallow. Land abandoned as a result of shifting cultivation is excluded. Land under permanent crops is land cultivated with crops that occupy the land for long periods and need not be replanted after each harvest, such as cocoa, coffee, and rubber. This category includes land under flowering shrubs, fruit trees, nut trees, and vines, but excludes land under trees grown for wood or timber. Permanent pasture is land used for five or more years for forage, including natural and cultivated crops.
   * [Link](https://data.worldbank.org/indicator/AG.LND.AGRI.ZS)
 * Birth rate, crude (per 1,000 people)
- * Crude birth rate indicates the number of live births occurring during the year, per 1,000 population estimated at midyear. Subtracting the crude death rate from the crude birth rate provides the rate of natural increase, which is equal to the rate of population change in the absence of migration.
- * [Link](https://data.worldbank.org/indicator/SP.DYN.CBRT.IN)
+  * Crude birth rate indicates the number of live births occurring during the year, per 1,000 population estimated at midyear. Subtracting the crude death rate from the crude birth rate provides the rate of natural increase, which is equal to the rate of population change in the absence of migration.
+  * [Link](https://data.worldbank.org/indicator/SP.DYN.CBRT.IN)
 * CPIA gender equality rating (1=low to 6=high)
   * Gender equality assesses the extent to which the country has installed institutions and programs to enforce laws and policies that promote equal access for men and women in education, health, the economy, and protection under law.
   * [Link](https://data.worldbank.org/indicator/IQ.CPA.GNDR.XQ)
