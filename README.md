@@ -6,8 +6,11 @@ You may view the notebook [here](https://nbviewer.jupyter.org/github/emailyc/STA
 # Contributers
 
 CHAN, Yiu Fung Frankie, 1155010561
+
 LI Wai Lan, 1155118254
+
 WONG, Tsz Wing, 1004666311
+
 WONG, Yiu Chung, 1155017920
 
 ## Variables
