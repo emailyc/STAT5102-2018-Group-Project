@@ -88,7 +88,7 @@ For each variable, you may click 'Details' on the top right corner of each graph
 * Life expectancy at birth, total (years)
   * Life expectancy at birth indicates the number of years a newborn infant would live if prevailing patterns of mortality at the time of its birth were to stay the same throughout its life.
   * [Link](https://data.worldbank.org/indicator/SP.DYN.LE00.IN?view=chart)
-* Mortality rate, infant (per 1,000 live births)
+* Mortality rate, infant (per 1,000 live births) (***removed***)
   * Infant mortality rate is the number of infants dying before reaching one year of age, per 1,000 live births in a given year.
   * [Link](https://data.worldbank.org/indicator/SP.DYN.IMRT.IN?view=chart)
 * Mortality rate, under-5 (per 1,000 live births)
