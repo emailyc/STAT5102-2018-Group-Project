@@ -29,7 +29,7 @@ For each variable, you may click 'Details' on the top right corner of each graph
 * Adolescent fertility rate (births per 1,000 women ages 15-19)
   * Adolescent fertility rate is the number of births per 1,000 women ages 15-19.
   * [Link](https://data.worldbank.org/indicator/SP.ADO.TFRT)
-* Age dependency ratio (% of working-age population)
+* Age dependency ratio (% of working-age population) (***removed***)
   * Age dependency ratio is the ratio of dependents--people younger than 15 or older than 64--to the working-age population--those ages 15-64. Data are shown as the proportion of dependents per 100 working-age population.
   * [Link](https://data.worldbank.org/indicator/SP.POP.DPND?view=chart)
 * Age dependency ratio, young (% of working-age population)
@@ -118,8 +118,8 @@ For each variable, you may click 'Details' on the top right corner of each graph
 
 **Generated Variables**
 
-* Continents
-  * Continent code generated using country code (using pycountry_convert library)
+* Age dependency ratio, old (% of working-age population)
+  * Age dependency ratio minus Age dependency ratio (young).
 * Mortality rate, under-5, Gender Difference
   * Difference between female and male Mortality rate, under-5,  (female minus male).
 * Life expectancy at birth, Gender Difference
