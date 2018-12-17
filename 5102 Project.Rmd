@@ -109,6 +109,36 @@ corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper"
       else print(xtable::xtable(Rnew), type="latex") 
     }
 } 
+
+shapiro_test <- function(residuals){
+  shapiro <- shapiro.test(residuals)
+  print(shapiro)
+if (shapiro$p.value > ALPHA) {
+  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
+  }  
+}
+
+anderson_test <- function(residuals){
+  anderson <- nortest::ad.test(residuals)
+  print(anderson)
+if (anderson$p.value > ALPHA) {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
+  } 
+}
+
+breusch_pagan_test <- function(model){
+  bp <- lmtest::bptest(model)
+  print(bp)
+  if (bp$p.value > ALPHA) {
+    print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
+    } else {
+      print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
+      } 
+}
 ```
 
 ```{python}
@@ -228,10 +258,6 @@ The original "Age dependency ratio (% of working-age population)" is renamed to 
 #Drop the column Year and YearCode
 world_bank = world_bank[!names(world_bank) %in% c("Year", "YearCode", "Country.Name", "Country.Code")]
 
-#Age dependency ratio (% of working-age population) includes people who are below 15 or above than 64
-#Age dependency ratio, young (% of working-age population) only includes people below 15
-#hence the first one includes redundant information
-
 colnames(world_bank)[colnames(world_bank)=="Age.dependency.ratio....of.worki"] <- "Age.dependency.ratio.old"
 colnames(world_bank)[colnames(world_bank)=="Age.dependency.ratio..young....o"] <- "Age.dependency.ratio.young"
 colnames(world_bank)[colnames(world_bank)=="Mortality.rate..infant..per.1.00"] <- "Infant.Mortality"
@@ -345,29 +371,17 @@ regression_graph(r.OLS_train["U5.Mortality"], r.OLS_fitted_values, r.OLS_residua
 
 #### Normality Test
 
-Both Shapiro–Wilk (Shapiro, & Wilk, 1965) and Anderson-Darling (Anderson, & Darling, 1952) tests tests the null hypothesis that a statistical sample $x_1$, ..., $x_n$ came from a normally distributed population. Here, these tests are used to test for normality of the model residuals.
+Both Shapiro–Wilk (Shapiro, & Wilk, 1965) and Anderson-Darling (Anderson, & Darling, 1952) tests tests the null hypothesis that a statistical sample $x_1$, ..., $x_n$ came from a normally distributed population. Here, these tests are used to test for normality of the model residuals. Normality tests tend to be not very statistically powerful, hence more than one tests are used.
 
 $H_0$: Residual follow a normal distribution
 $H_1$: residual do not follow a normal distribution
 
 ```{r, results=TRUE}
-OLS_shapiro <- shapiro.test(OLS_residuals)
-OLS_shapiro
-if (OLS_shapiro$p.value > ALPHA) {
-  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
-}  
+shapiro_test(OLS_residuals)
 ```
 
 ```{r, results=TRUE}
-OLS_anderson <- nortest::ad.test(OLS_residuals)
-OLS_anderson 
-if (OLS_anderson$p.value > ALPHA) {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
-}  
+anderson_test(OLS_residuals)
 ```
 
 #### Heteroskedasticity test
@@ -378,13 +392,7 @@ $H_0$: Variance of the residuals do not dependent on the values of the independe
 $H_1$: Variance of the residuals is dependent on the values of the independent variables.
 
 ```{r, results=TRUE}
-OLS_bp <- lmtest::bptest(OLS_model)
-OLS_bp
-if (OLS_bp$p.value > ALPHA) {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
-} else {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
-} 
+breusch_pagan_test(OLS_model)
 ```
 
 None of the Normality test passed; the key assumptions of multiple regression are valid in this model. 
@@ -452,35 +460,16 @@ regression_graph(r.Multiple_train["U5.Mortality"], r.Multiple_fitted_values, r.M
 
 #### Normality Test
 ```{r, results=TRUE}
-Multiple_shapiro <- shapiro.test(Multiple_residuals)
-Multiple_shapiro
-if (Multiple_shapiro$p.value > ALPHA) {
-  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
-}  
-   
+shapiro_test(Multiple_residuals)
 ```
 
 ```{r, results=TRUE}
-Multiple_anderson <- nortest::ad.test(Multiple_residuals)
-Multiple_anderson
-if (Multiple_anderson$p.value > ALPHA) {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
-}  
+anderson_test(Multiple_residuals) 
 ```
 
 #### Heteroskedasticity test
 ```{r, results=TRUE}
-Multiple_bp <- lmtest::bptest(Multiple_model)
-Multiple_bp
-if (Multiple_bp$p.value > ALPHA) {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
-} else {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
-} 
+breusch_pagan_test(Multiple_model)
 ```
 
 Again, none of the Normality test passed; the key assumptions of multiple regression are valid in this model. 
@@ -560,20 +549,20 @@ The confidence interval covers zero, hence the best simple transformation for th
 
 let's do this again.
 ```{r Multiple Regression with transformed response variable, results=TRUE}
-Multiple_log <- lm(data = Multiple_train, I(log(U5.Mortality)) ~ .)
-summary(Multiple_log)
-Multiple_log_fitted_values <- predict(Multiple_log, newdata = Multiple_train)
-Multiple_log_residuals <- resid(Multiple_log)
+Multiple_log_model <- lm(data = Multiple_train, I(log(U5.Mortality)) ~ .)
+summary(Multiple_log_model)
+Multiple_log_fitted_values <- predict(Multiple_log_model, newdata = Multiple_train)
+Multiple_log_residuals <- resid(Multiple_log_model)
 ```
 
 #### The test RMSE and $R^2$ are as follow
 ```{r, results=TRUE}
-postResample(pred = predict.lm(Multiple_log, Multiple_test), obs = log(Multiple_test$U5.Mortality))
+postResample(pred = predict.lm(Multiple_log_model, Multiple_test), obs = log(Multiple_test$U5.Mortality))
 ```
 
 There are still terms with high VIF. This is not surprising since the set of predictor variables is exactly the same as the previous analysis. 
 ```{r, results=TRUE}
-car::vif(Multiple_log)
+car::vif(Multiple_log_model)
 ```
 
 ```{python}
@@ -583,35 +572,16 @@ regression_graph(r.Multiple_train["U5.Mortality"].apply(np.log), r.Multiple_log_
 
 #### Normality Test
 ```{r, results=TRUE}
-Multiple_log_shapiro <- shapiro.test(Multiple_log_residuals)
-Multiple_log_shapiro
-if (Multiple_log_shapiro$p.value > ALPHA) {
-  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
-}  
-   
+shapiro_test(Multiple_log_residuals)
 ```
 
 ```{r, results=TRUE}
-Multiple_log_anderson <- nortest::ad.test(Multiple_log_residuals)
-Multiple_log_anderson
-if (Multiple_log_anderson$p.value > ALPHA) {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
-}  
+anderson_test(Multiple_log_residuals) 
 ```
 
 #### Heteroskedasticity test
 ```{r, results=TRUE}
-Multiple_log_bp <- lmtest::bptest(Multiple_log)
-Multiple_log_bp
-if (Multiple_log_bp$p.value > ALPHA) {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
-} else {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
-} 
+breusch_pagan_test(Multiple_log_model)
 ```
 
 One out of two normality tests passed; studentized Breusch-Pagan test also passed. Through the above testing, we can prove the key assumptions of multiple regression are valid in this model.  
@@ -636,15 +606,16 @@ summary(Lasso_multiple_model)
 Lasso_multiple_fitted_values <- predict(Lasso_multiple_model, newdata = Multiple_train)
 Lasso_multiple_residuals <- resid(Lasso_multiple_model)
 Lasso_full_coef <- paste(round(coef(Lasso_multiple_model), 2))
-Lasso_f_test <- anova(lm(data = Multiple_train, U5.Mortality~1), Lasso_multiple_model)
+Lasso_f_test <- anova(lm(data = Multiple_train, log(U5.Mortality)~1), Lasso_multiple_model)
+Lasso_f_p <- Lasso_f_test$`Pr(>F)`
 ```
 
 #### F test for overall sigificance
 $H_0$: No linear relationship between Mortality rate and all variables 
 $H_1$: At least one independent variables affects Y
 
-The p-value is `r Lasso_f_test$`Pr(>F)`[1]`, we reject H0 and conclude that these independent variables have an overall effect on Y. 
-$R^2_{adj}$ is `r summary(Best_sub_model)$adj.r.squared`. The model is able to explain over `r scales::percent(summary(Lasso_multiple_model)$adj.r.squared)` of variance in `U5.Mortality`.
+The p-value is `r Lasso_f_p`, we reject H0 and conclude that these independent variables have an overall effect on Y. 
+$R^2_{adj}$ is `r summary(Lasso_multiple_model)$adj.r.squared`. The model is able to explain over `r scales::percent(summary(Lasso_multiple_model)$adj.r.squared)` of variance in `U5.Mortality`.
 
 #### The test RMSE and $R^2$ are as follow
 ```{r, results=TRUE}
@@ -664,35 +635,16 @@ regression_graph(r.Multiple_train["U5.Mortality"].apply(np.log), r.Lasso_multipl
 #### Normality Test
 
 ```{r, results=TRUE}
-Lasso_multiple_shapiro <- shapiro.test(Lasso_multiple_residuals)
-Lasso_multiple_shapiro
-if (Lasso_multiple_shapiro$p.value > ALPHA) {
-  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
-}  
-   
+shapiro_test(Lasso_multiple_residuals)
 ```
 
 ```{r, results=TRUE}
-Lasso_multiple_anderson <- nortest::ad.test(Lasso_multiple_residuals)
-Lasso_multiple_anderson
-if (Lasso_multiple_anderson$p.value > ALPHA) {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
-}  
+anderson_test(Lasso_multiple_residuals) 
 ```
 
 #### Heteroskedasticity test
 ```{r, results=TRUE}
-Lasso_multiple_bp <- lmtest::bptest(Lasso_multiple_model)
-Lasso_multiple_bp
-if (Lasso_multiple_bp$p.value > ALPHA) {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
-} else {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
-} 
+breusch_pagan_test(Lasso_multiple_model)
 ```
 Through the above testing, we can prove the key assumptions of multiple regression are valid in this model. 
 
@@ -890,19 +842,20 @@ Best_sub_fitted_values <- predict(Best_sub_model, newdata = Best_sub_train)
 Best_sub_residuals <- resid(Best_sub_model)
 Best_sub_full_coef <- paste(round(coef(Best_sub_model), 2))
 Best_sub_f_test <- anova(lm(data = Best_sub_train, U5.Mortality~1), Best_sub_model)
+Best_sub_f_p <- Best_sub_f_test$`Pr(>F)`
 ```
 
 #### F test for overall sigificance
 $H_0$: No linear relationship between Mortality rate and all variables 
 $H_1$: At least one independent variables affects Y
 
-The p-value is `r Best_sub_f_test$`Pr(>F)`[1]`, we reject $H_0$ and conclude that these independent variables have an overall effect on Y. 
+The p-value is `r Best_sub_f_p`, we reject $H_0$ and conclude that these independent variables have an overall effect on Y. 
 $R^2_{adj}$ is `r summary(Best_sub_model)$adj.r.squared`. The model is able to explain over `r scales::percent(summary(Best_sub_model)$adj.r.squared)` of variance in `U5.Mortality`.
 
 #### Regression Equation
 $$
 \begin{align*}
-\mathrm{\hat{Price}} = `r full_coef[1]` 
+\mathrm{\hat{Price}} = `r Best_sub_full_coef[1]` 
     &+ `r Best_sub_full_coef[2]`\;  \mathrm{Adolescent.fertility.rate} \\
     &+ `r Best_sub_full_coef[3]`\;  \mathrm{Age.dependency.ratio.old} \\
     &+ `r Best_sub_full_coef[4]`\;  \mathrm{GDP.per.capita}    \\
@@ -932,35 +885,16 @@ regression_graph(r.Best_sub_train["U5.Mortality"], r.Best_sub_fitted_values, r.B
 #### Normality Test
 
 ```{r, results=TRUE}
-Best_sub_shapiro <- shapiro.test(Best_sub_residuals)
-Best_sub_shapiro
-if (Best_sub_shapiro$p.value > ALPHA) {
-  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
-}  
-   
+shapiro_test(Best_sub_residuals) 
 ```
 
 ```{r, results=TRUE}
-Best_sub_anderson <- nortest::ad.test(Best_sub_residuals)
-Best_sub_anderson
-if (Best_sub_anderson$p.value > ALPHA) {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
-} else {
-  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
-}  
+anderson_test(Best_sub_residuals) 
 ```
 
 #### Heteroskedasticity test
 ```{r, results=TRUE}
-Best_sub_bp <- lmtest::bptest(Best_sub_model)
-Best_sub_bp
-if (Best_sub_bp$p.value > ALPHA) {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
-} else {
-  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
-} 
+breusch_pagan_test(Best_sub_model)
 ```
 
 Through the above testing, we can prove the key assumptions of multiple regression are valid in this model. 
