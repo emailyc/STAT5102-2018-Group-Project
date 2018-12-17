@@ -1,9 +1,9 @@
 ---
 title: "5102 Group Project"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 # Abstract 
@@ -607,7 +607,7 @@ Lasso_multiple_fitted_values <- predict(Lasso_multiple_model, newdata = Multiple
 Lasso_multiple_residuals <- resid(Lasso_multiple_model)
 Lasso_full_coef <- paste(round(coef(Lasso_multiple_model), 2))
 Lasso_f_test <- anova(lm(data = Multiple_train, log(U5.Mortality)~1), Lasso_multiple_model)
-Lasso_f_p <- Lasso_f_test$`Pr(>F)`
+Lasso_f_p <- round(Lasso_f_test$`Pr(>F)`[2], 2)
 ```
 
 #### F test for overall sigificance
@@ -842,7 +842,7 @@ Best_sub_fitted_values <- predict(Best_sub_model, newdata = Best_sub_train)
 Best_sub_residuals <- resid(Best_sub_model)
 Best_sub_full_coef <- paste(round(coef(Best_sub_model), 2))
 Best_sub_f_test <- anova(lm(data = Best_sub_train, U5.Mortality~1), Best_sub_model)
-Best_sub_f_p <- Best_sub_f_test$`Pr(>F)`
+Best_sub_f_p <- round(Best_sub_f_test$`Pr(>F)`[2], 2)
 ```
 
 #### F test for overall sigificance
