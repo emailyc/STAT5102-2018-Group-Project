@@ -355,7 +355,7 @@ OLS_test <- world_bank_imputed[-OLS_inTrain,]
 
 ```{r OLS Regression, results = TRUE}
 OLS_model <- lm(data = OLS_train, U5.Mortality ~ Infant.Mortality)
-summary(OLS_model)
+summary(OLS_model)$call
 OLS_fitted_values <- predict(OLS_model, newdata = OLS_train)
 OLS_residuals <- resid(OLS_model)
 ```
@@ -443,7 +443,7 @@ Multiple_test <- world_bank_imputed[-Multiple_inTrain,]
 
 ```{r Multiple Regression, results=TRUE}
 Multiple_model <- lm(data = Multiple_train, U5.Mortality ~ .)
-summary(Multiple_model)
+summary(Multiple_model)$call
 Multiple_fitted_values <- predict(Multiple_model, newdata = Multiple_train)
 Multiple_residuals <- resid(Multiple_model)
 ```
@@ -536,7 +536,7 @@ A log transformation on the response variable has the following benifits:
 
 Simultanous transformation on predictor variables may be required to maintain linearity and some other assumptions. This will be discussed later in this report.
 
-```{r Box-Cox, results=TRUE, render = FALSE}
+```{r Box-Cox, results=FALSE, render = FALSE}
 bc <- MASS::boxcox(lm(Multiple_train$U5.Mortality~1))
 bcCI <- range(bc$x[bc$y > max(bc$y)-qchisq(0.95,1)/2])
 print(paste0("The 95% confidence interval for the lambda parameter that maximises the log-likelihood function is: ", round(bcCI[1], 4), ", ",round(bcCI[2], 4)))
@@ -550,7 +550,7 @@ The confidence interval covers zero, hence the best simple transformation for th
 let's do this again.
 ```{r Multiple Regression with transformed response variable, results=TRUE}
 Multiple_log_model <- lm(data = Multiple_train, I(log(U5.Mortality)) ~ .)
-summary(Multiple_log_model)
+summary(Multiple_log_model)$call
 Multiple_log_fitted_values <- predict(Multiple_log_model, newdata = Multiple_train)
 Multiple_log_residuals <- resid(Multiple_log_model)
 ```
@@ -602,7 +602,7 @@ lasso_terms
 ```
 ```{r Multiple Regression Using L1 norm terms, results=TRUE}
 Lasso_multiple_model <- lm(data = Multiple_train[c(lasso_terms, "U5.Mortality")], log(U5.Mortality) ~ .)
-summary(Lasso_multiple_model)
+summary(Lasso_multiple_model)$call
 Lasso_multiple_fitted_values <- predict(Lasso_multiple_model, newdata = Multiple_train)
 Lasso_multiple_residuals <- resid(Lasso_multiple_model)
 Lasso_full_coef <- paste(round(coef(Lasso_multiple_model), 2))
@@ -612,6 +612,7 @@ Lasso_f_p <- round(Lasso_f_test$`Pr(>F)`[2], 2)
 
 #### F test for overall sigificance
 $H_0$: No linear relationship between Mortality rate and all variables 
+
 $H_1$: At least one independent variables affects Y
 
 The p-value is `r Lasso_f_p`, we reject H0 and conclude that these independent variables have an overall effect on Y. 
@@ -685,11 +686,6 @@ max_adj_R2 = best_sub_features[best_sub_features.groupby('numb_features')['Adj_R
 ```
 
 #### Best Subsets
-
-Here is a peek into the top ten best subsets
-```{r, results=TRUE}
-head(py$min_MSE, 10)
-```
 
 For every $k_i$ (from 1 to `r ncol(world_bank_imputed)`), we pick out the subset with smallest test MSE, then store it in a dataframe. We also pick out the subset with highest test $R^2_{adj}$, and store them in another dataframe. 
 We then sort the two data frames by $R^2_{adj}$ and MSE.
@@ -816,7 +812,7 @@ response_vs_predictor_plot(X, Y, "U5 Mortality v.s. Predictor (transformed)")
 Much better! In particular, there are no more L-shaped relationship between the response and predictors such as `GDP per Capita`.
 
 #### Proposed Model
-$$
+
 \begin{align*}
 \mathrm{U5.Mortality} = \beta_{0} 
     &+ \beta_{1}\;  \mathrm{Adolescent.fertility.rate} \\
@@ -827,7 +823,7 @@ $$
     &+ \beta_{6}\;  \mathrm{Life.exp.gender.diff }  \\
     &+ \epsilon
 \end{align*}
-$$
+
 where 
 
 \begin{equation}
@@ -837,7 +833,7 @@ where
 #### Best Subset Multiple Regression
 ```{r, results=TRUE}
 Best_sub_model <- lm(data = Best_sub_train, U5.Mortality~.)
-summary(Best_sub_model)
+summary(Best_sub_model)$call
 Best_sub_fitted_values <- predict(Best_sub_model, newdata = Best_sub_train)
 Best_sub_residuals <- resid(Best_sub_model)
 Best_sub_full_coef <- paste(round(coef(Best_sub_model), 2))
@@ -847,15 +843,16 @@ Best_sub_f_p <- round(Best_sub_f_test$`Pr(>F)`[2], 2)
 
 #### F test for overall sigificance
 $H_0$: No linear relationship between Mortality rate and all variables 
+
 $H_1$: At least one independent variables affects Y
 
 The p-value is `r Best_sub_f_p`, we reject $H_0$ and conclude that these independent variables have an overall effect on Y. 
 $R^2_{adj}$ is `r summary(Best_sub_model)$adj.r.squared`. The model is able to explain over `r scales::percent(summary(Best_sub_model)$adj.r.squared)` of variance in `U5.Mortality`.
 
 #### Regression Equation
-$$
+
 \begin{align*}
-\mathrm{\hat{Price}} = `r Best_sub_full_coef[1]` 
+\mathrm{\hat{U5.Mortality}} = `r Best_sub_full_coef[1]` 
     &+ `r Best_sub_full_coef[2]`\;  \mathrm{Adolescent.fertility.rate} \\
     &+ `r Best_sub_full_coef[3]`\;  \mathrm{Age.dependency.ratio.old} \\
     &+ `r Best_sub_full_coef[4]`\;  \mathrm{GDP.per.capita}    \\
@@ -863,7 +860,7 @@ $$
     &+ `r Best_sub_full_coef[6]`\;  \mathrm{Mortality.gender.diff} \\
     &+ `r Best_sub_full_coef[7]`\;  \mathrm{Life.exp.gender.diff}  
 \end{align*}
-$$
+
 
 
 #### The test RMSE and $R^2$ are as follow
