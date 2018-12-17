@@ -1,0 +1,840 @@
+---
+title: "5102 Group Project"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+# Abstract 
+***
+
+The present study investigates the dataset obtained from The World Bank: World Development Indicators. A Linear Model is used to perform a prediction analysis on the response variable: Mortality rate, using 7 predictor variables.
+
+# Introduction
+*** 
+ 
+* According to Worldbank, “mortality indicators are important indicators of health status in a country.”
+* This report aims at finding a series of predictors which can most parsimoniously and accurately describe and predict children mortality rate. The finds may be useful in the following ways:
+  + Data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations
+  + To compare socio economic development across countries.
+  + To better understand the relation between children mortality and other variables. This makes the goal of tackling children mortality more elucidating.
+ 
+To identify a subset of features in the dataset which best predicts Mortality rate of children under the age of five. 
+
+```{r Markdown Setup, echo = FALSE, results = FALSE, warning = FALSE, message = FALSE}
+#some constants
+STAT5102 <- 5102
+ALPHA <- 0.050
+
+library("knitr")
+library("ggplot2")
+library("mice")
+library("caret")
+library("nortest")
+library("reticulate")
+library("lmtest")
+
+use_condaenv(condaenv = "stat5102_", required = TRUE)
+opts_chunk$set(echo = FALSE,
+               results = FALSE,
+               render = TRUE,
+               warning = FALSE,
+               message = FALSE,
+               cache=TRUE,
+               prompt = FALSE, 
+               python = reticulate::eng_python)
+
+set.seed(STAT5102)
+```
+
+
+
+```{python}
+import scipy
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+import scipy.stats as stats
+from sklearn import linear_model
+import itertools
+```
+
+```{r Self Defined Functions R}
+corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper", "lower"),
+                     result=c("none", "html", "latex")){
+    #Compute correlation matrix
+    require(Hmisc)
+    x <- as.matrix(x)
+    correlation_matrix<-rcorr(x, type=method[1])
+    R <- correlation_matrix$r # Matrix of correlation coeficients
+    p <- correlation_matrix$P # Matrix of p-value 
+    
+    ## Define notions for significance levels; spacing is important.
+    mystars <- ifelse(p < .0001, "****", ifelse(p < .001, "*** ", ifelse(p < .01, "**  ", ifelse(p < .05, "*   ", "    "))))
+    
+    ## trunctuate the correlation matrix to two decimal
+    R <- format(round(cbind(rep(-1.11, ncol(x)), R), 2))[,-1]
+    
+    ## build a new matrix that includes the correlations with their apropriate stars
+    Rnew <- matrix(paste(R, mystars, sep=""), ncol=ncol(x))
+    diag(Rnew) <- paste(diag(R), " ", sep="")
+    rownames(Rnew) <- colnames(x)
+    colnames(Rnew) <- paste(colnames(x), "", sep="")
+    
+    ## remove upper triangle of correlation matrix
+    if(removeTriangle[1]=="upper"){
+      Rnew <- as.matrix(Rnew)
+      Rnew[upper.tri(Rnew, diag = TRUE)] <- ""
+      Rnew <- as.data.frame(Rnew)
+    }
+    
+    ## remove lower triangle of correlation matrix
+    else if(removeTriangle[1]=="lower"){
+      Rnew <- as.matrix(Rnew)
+      Rnew[lower.tri(Rnew, diag = TRUE)] <- ""
+      Rnew <- as.data.frame(Rnew)
+    }
+    
+    ## remove last column and return the correlation matrix
+    Rnew <- cbind(Rnew[1:length(Rnew)-1])
+    if (result[1]=="none") return(Rnew)
+    else{
+      if(result[1]=="html") print(xtable::xtable(Rnew), type="html")
+      else print(xtable::xtable(Rnew), type="latex") 
+    }
+} 
+```
+
+```{python}
+#some self defined functions
+
+def calculate_mse(y_true, y_pred, n, k):
+  resid = (y_true - y_pred)
+  rss = np.sum(resid**2)
+  mse = rss / (n - (k + 1))
+  return mse
+    
+def regression_graph(true_values, fitted_values, residuals):
+  fig = plt.figure(figsize = (12,6))
+  ax1 = plt.subplot(221)
+  ax2 = plt.subplot(222)
+  ax3 = plt.subplot(212)
+  
+  ax1.scatter(true_values, fitted_values)
+  ax1.set_xlabel("True Values")
+  ax1.set_ylabel("Fitted values")
+  ax1.set_title("True Values v.s. Fitted values")
+  
+  ax2.scatter(fitted_values, residuals)
+  ax2.axhline(y = 0, color='r', linestyle = '--')
+  ax2.set_xlabel("Fitted values")
+  ax2.set_ylabel("Residual")
+  ax2.set_title("Residual Plot")
+  
+  stats.probplot(residuals, dist="norm", plot=ax3)
+  plt.tight_layout()
+  plt.show()
+  
+def fit_linear_reg(X,Y):
+    
+  n = X.shape[0]
+  k = X.shape[1]
+  
+  #Fit linear regression model and return MSE and R squared values
+  model_k = linear_model.LinearRegression(fit_intercept = True, n_jobs=-1)
+  model_k.fit(X, Y)
+  
+  #get MSE
+  fitted_values = model_k.predict(X)
+  MSE = calculate_mse(Y, fitted_values, n, k)
+  
+  #get R^2
+  R_squared = model_k.score(X,Y)
+  adj_R_squared = 1 - ( (1-R_squared)*(n-1)/(n-(k+1)) )   
+  
+  #returning the test RSS and test R^2
+  return MSE, adj_R_squared  
+  
+  
+  
+def find_best_subset(X, Y, up_to = 10):
+  MSE_list, adj_R_squared_list, feature_list = [],[], []
+  numb_features = []
+  
+  #Looping over k = 1 to k = 11 features in X
+  for k in range(1, up_to + 1):
+    #Looping over all possible combinations: from 11 choose k
+    for combo in itertools.combinations(X.columns,k):
+      tmp_result = fit_linear_reg(X[list(combo)],Y)   #Store temp result 
+      MSE_list.append(tmp_result[0])                  #Append lists
+      adj_R_squared_list.append(tmp_result[1])
+      
+      feature_list.append(combo)
+      numb_features.append(len(combo))   
+
+  #Store in DataFrame
+  best_sub_features = pd.DataFrame({'numb_features': numb_features,'MSE': MSE_list, 'Adj_R_squared':adj_R_squared_list,'features':feature_list})
+  return best_sub_features
+  
+```
+
+```{r Read Data}
+world_bank = sas7bdat::read.sas7bdat("project_data.sas7bdat", debug=FALSE)
+```
+
+# Preliminary Data Manipulation
+***
+
+First we remove a few variables:
+
+*  Year
+*  YearCode
+*  Country Name
+*  Country Code
+
+This is because they contribute no added value to our subsequent analysis.
+
+The variable "Age dependency ratio (% of working-age population)" includes people who are below 15 or above than 64. Mean while, the variable "Age dependency ratio, young (% of working-age population)" only includes people below 15. To seperate these two, we will subtract the seond from the first.
+The original "Age dependency ratio (% of working-age population)" is renamed to "Age dependency ratio (% of working-age population)".
+```{r}
+#Drop the column Year and YearCode
+world_bank = world_bank[!names(world_bank) %in% c("Year", "YearCode", "Country.Name", "Country.Code")]
+
+#Age dependency ratio (% of working-age population) includes people who are below 15 or above than 64
+#Age dependency ratio, young (% of working-age population) only includes people below 15
+#hence the first one includes redundant information
+
+colnames(world_bank)[colnames(world_bank)=="Age.dependency.ratio....of.worki"] <- "Age.dependency.ratio.old"
+colnames(world_bank)[colnames(world_bank)=="Age.dependency.ratio..young....o"] <- "Age.dependency.ratio.young"
+colnames(world_bank)[colnames(world_bank)=="Mortality.rate..infant..per.1.00"] <- "Infant.Mortality"
+colnames(world_bank)[colnames(world_bank)=="Mortality.rate..under.5..per.1.0"] <- "U5.Mortality"
+colnames(world_bank)[colnames(world_bank)=="Mortality.rate..under.5..male..p"] <- "Male.Mortality"
+colnames(world_bank)[colnames(world_bank)=="Mortality.rate..under.5..female"] <- "Female.Mortality"
+
+world_bank["Age.dependency.ratio.old"] = world_bank["Age.dependency.ratio.old"] - world_bank["Age.dependency.ratio.young"]
+```
+
+```{r}
+head(world_bank, 5)
+```
+
+## Missing Data
+
+The data set contains some obviously problematic data. For instance, some variables contains more then 90% missing data. Here, we remove variables with more than 5% missing data, and remove cases with more than 15% missing points.
+
+```{r Remove Missings}
+#remove case where Mortality rate, under-5 (per 1,000 live births) is Nan
+world_bank = world_bank[!is.na(world_bank$U5.Mortality),] 
+rownames(world_bank) <- NULL
+
+#remove columns with more than 5% missing
+world_bank <- world_bank[,-which(colMeans(is.na(world_bank)) > 0.10)]
+rownames(world_bank) <- NULL
+
+#remove rows with more than 5 field missing
+world_bank <- world_bank[-which(rowSums(is.na(world_bank)) > 5),]
+rownames(world_bank) <- NULL
+```
+
+## Impute Data with Multiple Imputation by Chained Equations (MICE)
+
+Dessription
+```{r MICE Impute}
+world_bank_imputed <- mice(data = world_bank, m = 10, method="rf", seed = STAT5102, printFlag = FALSE)
+world_bank_imputed <- complete(world_bank_imputed)
+```
+
+The data is now ready for analysis.
+
+# Exploratory Data Analysis
+***
+
+### Distributions of **Mortality Rate Under 5, Per 1000/Births**
+```{r Y Distribution}
+qplot(world_bank_imputed$U5.Mortality, geom="histogram", bins = sqrt(nrow(world_bank_imputed))) 
+```
+
+The response variable for this project is the quantitative variable, **Mortality Rate Under 5, Per 1000/Births**; let's call it `U5.Mortality` from here onward. 
+`U5.Mortality` is measured in every 1000 deaths per births. While rate data is theoritcally infinitely divisible, `U5.Mortality` is Poission disdributed because it is derived from count data. There are decimal points only because it is divided by 1,000 for easy comparison. The response variable having Poission properties will violate many of the linear regression assumptions. This will be discussed in a later session.
+Exploring the relstionship between `U5.Mortality` and each of the predictor variables would very much be benifitil. However, there are still `r ncol(world_bank)` variables remaining in the dataset, even after deletion. Hence we will focus on the predictor variables instead.
+
+### Correlation Heat Map
+```{r Correlation Heat Map}
+cormat <- round(cor(world_bank_imputed),2)
+melted_cormat <- reshape2::melt(cormat)
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile() + 
+  ggtitle("Correlation Heatmap")+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+```{r,  results = TRUE}
+mortality_names_index = grep("Mortality$", colnames(world_bank_imputed))
+mortality_names <- colnames(world_bank_imputed)[mortality_names_index]
+#cor(world_bank[mortality_names])
+corstars(world_bank_imputed[mortality_names], result="html")
+```
+
+# Exploring correlations with OLS regression
+***
+
+We see that everything is highly corrrelated; they are essentially the same measure. Highly correlated predictors can lead to instability in our estimator, as well as increased variance. 
+
+Not only do these variables covary, their vaule are also extremely close to each other. It is very tempting to just use a one of these variables to predict the response variable. Let's do this and see what's gonna happen if we just pick one of these predictors to predict `U5.Mortality`? Here we use Mortality rate, infant (per 1,000 births).
+
+```{r OLS Data PArtition}
+#create data partition
+OLS_inTrain <- createDataPartition(y=world_bank_imputed$U5.Mortality, p=0.90, list=FALSE)
+OLS_train <- world_bank_imputed[OLS_inTrain,]
+OLS_test <- world_bank_imputed[-OLS_inTrain,]
+```
+
+```{r OLS Regression, results = TRUE}
+OLS_model <- lm(data = OLS_train, U5.Mortality ~ Infant.Mortality)
+summary(OLS_model)
+OLS_fitted_values <- predict(OLS_model, newdata = OLS_train)
+OLS_residuals <- resid(OLS_model)
+```
+
+### The test RMSE and $R^2$ are as follow
+```{r, results = TRUE}
+postResample(pred = predict.lm(OLS_model, OLS_test), obs = OLS_test$U5.Mortality)
+```
+
+```{python}
+regression_graph(r.OLS_train["U5.Mortality"], r.OLS_fitted_values, r.OLS_residuals)
+```
+
+### Normality Test
+```{r, results=TRUE}
+OLS_shapiro <- shapiro.test(OLS_residuals)
+if (OLS_shapiro$p.value > ALPHA) {
+  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
+}  
+   
+```
+
+```{r, results=TRUE}
+OLS_anderson <- ad.test(OLS_residuals)
+if (OLS_anderson$p.value > ALPHA) {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
+}  
+```
+
+### Heteroskedasticity test
+```{r, results=TRUE}
+OLS_bp <- bptest(OLS_model)
+if (OLS_bp$p.value > ALPHA) {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
+} else {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
+} 
+```
+
+
+None of the Normality test passed.
+
+The bottom line is, we cannot use Simple Linear Regression (OLS) simply because high correlation between predictor and outcome. We will not further investigate OLS in this report. 
+
+How about the other two mortality indicators? After some eyeball investigation, it is not difficult to see that our response variable is merely the average of Male/Female mortality rate. Hence we will not include these two into our analysis because they are essentially the same thing as our response variable; they should not be included in any formal analysis because one could argue that this is a form of data leakage. However, it might be interesting to see how the DIFFERENCE in Male/Female mortality rate affects our response variable. Therefore we can consider adding the DIFFERENCE in Male/Female mortality rate into our dataset.
+
+Finally, because of the following:
+* infant mortality rate is highly correlated to our response
+* they are measured in the same unit
+* almost no difference in absolute value
+* domain knowledge tell us that they are indeed almost the same measure
+
+we decide to remove infant mortality rate.
+
+```{r Mortality Gender Differenes Variables}
+#add gender difference
+world_bank_imputed$Mortality.gender.diff <- abs(world_bank_imputed$Male.Mortality - world_bank_imputed$Female.Mortality)
+  
+#remove mortality rate for male and female
+world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Male.Mortality", "Female.Mortality"))]
+
+#remove infant mortality rate
+world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Infant.Mortality"))]
+```
+
+We do the same thing for Life Expectancy: We combind "Life expectancy at birth", both male and female, and generate a new variable called `Life.exp.gender.diff`.
+```{r Life expectency Gender Differenes Variables}
+#do the same thing for Life expectancy 
+world_bank_imputed["Life.exp.gender.diff"] <- abs(world_bank_imputed["Life.expectancy.at.birth..female"] - world_bank_imputed["Life.expectancy.at.birth..male.."])
+
+
+#remove Life expectency for male and female
+world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Life.expectancy.at.birth..female", "Life.expectancy.at.birth..male..", "Life.expectancy.at.birth..total"))]
+```
+
+# Multiple Regression
+***
+Perhapes a set of predictor variables can be better explain the variations in Mortality rate?
+
+```{r Multiple Regression Data Partition}
+#create data partition
+Multiple_inTrain <- createDataPartition(y=world_bank_imputed$U5.Mortality, p=0.90, list=FALSE)
+Multiple_train <- world_bank_imputed[Multiple_inTrain,]
+Multiple_test <- world_bank_imputed[-Multiple_inTrain,]
+```
+
+```{r Multiple Regression, results=TRUE}
+Multiple_model <- lm(data = Multiple_train, U5.Mortality ~ .)
+summary(Multiple_model)
+Multiple_fitted_values <- predict(Multiple_model, newdata = Multiple_train)
+Multiple_residuals <- resid(Multiple_model)
+```
+
+### The test RMSE and $R^2$ are as follow
+```{r, results=TRUE}
+postResample(pred = predict.lm(Multiple_model, Multiple_test), obs = Multiple_test$U5.Mortality)
+```
+
+### VIF
+```{r, results=TRUE}
+car::vif(Multiple_model)
+```
+
+There are enormous milticolinearity. For example, `Birth rate crude/1.000 people` has VIF well above 90.
+Many of these predictor variables are linear combinations of others. They provide no useful information; their presence increase variance in coefficient estimation and reduce statistical power in proving the coefficients are useful.
+
+```{python}
+regression_graph(r.Multiple_train["U5.Mortality"], r.Multiple_fitted_values, r.Multiple_residuals)
+```
+
+### Normality Test
+```{r, results=TRUE}
+Multiple_shapiro <- shapiro.test(Multiple_residuals)
+if (Multiple_shapiro$p.value > ALPHA) {
+  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
+}  
+   
+```
+
+```{r, results=TRUE}
+Multiple_anderson <- ad.test(Multiple_residuals)
+if (Multiple_anderson$p.value > ALPHA) {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
+}  
+```
+
+### Heteroskedasticity test
+```{r, results=TRUE}
+Multiple_bp <- bptest(Multiple_model)
+if (Multiple_bp$p.value > ALPHA) {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
+} else {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
+} 
+```
+
+Again, none of the Normality test passed.
+
+# Regression Model
+***
+
+The work above are of exploratory nature. We found that both OLS and multiple regression result in residuals that are both heteroskedastic and non Gaussian. We must perform transformation.
+
+The following is our current regression model:
+
+\begin{equation}
+Y = \beta_0 + \beta_1 X_1 + ... + \beta_p X_p + \epsilon
+\end{equation}
+
+where 
+
+\begin{equation}
+\epsilon \sim N(\mu,\sigma^2)
+\end{equation}
+
+We are regressing a continous variable Y on a set of Xs. The model assumes Y to be the sum of all Xs multiplied by their corrosponding coefficients, plus random normal error. This model works well if we can plug in numbers on the Right Hand Side(RHS) and get the corrosponding value on the Left Hand Side (LHS). The regression model shown above relies heavily on a few assumptions:
+
+* Constant Error terms
+* Gaussian Error terms
+* Error terms uncorrelated to fitted values and predictor variables.
+* LHS of the model be strictly positive.
+
+We have already concluded we failed to obtain constant and Gaussian error terms.
+
+Note that the sum on the RHS can sometimes be negative depending on the input and coefficients. Unfortunately, the response variable `U5.Mortality` can not take negative values; our model is broken when ever the sum on of the RHS comes out negative. Worst, as mentioned in the exploratory data analysis section, `U5.Mortality` has Poission properties: the variance in `U5.Mortality` is somewhat correlated to its mean. 
+
+Because of this, we perform a log transformation on the response variable. 
+
+\begin{equation}
+\log(Y) = \beta_0 + \beta_1 X_1 + ... + \beta_p X_p + \epsilon
+\end{equation}
+
+A log transformation on the response variable has the following benifits:
+
+1. With a log transformation on the response variable, values on both sides of the equation may take negative values, and values on the RHS are no longer restricted by the response only taking positive values. 
+2. A log transformation on a Poission variable decouples the its variance from the mean. This ensures each $y_i$ to be independently distributed. A Poission variable may be the reason for both OLS and Multiple regression both yielding extremely non-Gaussian and non-constant residuals.
+
+Simultanous transformation on predictor variables may be required to maintain linearity and some other assumptions. This will be discussed later in this report.
+
+```{r Box-Cox, results=TRUE, render = FALSE}
+bc <- MASS::boxcox(lm(Multiple_train$U5.Mortality~1))
+bcCI <- range(bc$x[bc$y > max(bc$y)-qchisq(0.95,1)/2])
+print(paste0("The 95% confidence interval for the lambda parameter that maximises the log-likelihood function is: ", round(bcCI[1], 4), ", ",round(bcCI[2], 4)))
+```
+
+The confidence interval covers zero, hence the best simple transformation for the response is logarithm.
+
+# Multiple Regression with transformed response variable
+***
+
+let's do this again.
+```{r Multiple Regression with transformed response variable, results=TRUE}
+Multiple_log <- lm(data = Multiple_train, I(log(U5.Mortality)) ~ .)
+summary(Multiple_log)
+Multiple_log_fitted_values <- predict(Multiple_log, newdata = Multiple_train)
+Multiple_log_residuals <- resid(Multiple_log)
+```
+
+### The test RMSE and $R^2$ are as follow
+```{r, results=TRUE}
+postResample(pred = predict.lm(Multiple_log, Multiple_test), obs = log(Multiple_test$U5.Mortality))
+```
+
+There are still terms with high VIF. This is not surprising since the set of predictor variables is exactly the same as the previous analysis. 
+```{r, results=TRUE}
+car::vif(Multiple_log)
+```
+
+```{python}
+regression_graph(r.Multiple_train["U5.Mortality"].apply(np.log), r.Multiple_log_fitted_values, r.Multiple_log_residuals)
+```
+
+
+### Normality Test
+```{r, results=TRUE}
+Multiple_log_shapiro <- shapiro.test(Multiple_log_residuals)
+if (Multiple_log_shapiro$p.value > ALPHA) {
+  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
+}  
+   
+```
+
+```{r, results=TRUE}
+Multiple_log_anderson <- ad.test(Multiple_log_residuals)
+if (Multiple_log_anderson$p.value > ALPHA) {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
+}  
+```
+
+### Heteroskedasticity test
+```{r, results=TRUE}
+Multiple_log_bp <- bptest(Multiple_log)
+if (Multiple_log_bp$p.value > ALPHA) {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
+} else {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
+} 
+```
+
+Two out of three normality tests passed; studentized Breusch-Pagan test also passed. 
+
+# Feature Selection Using Lasso Regression
+***
+
+There are relatively few countries around the world compared to the amount of data we generate. After some initial wrangling, we only have 182 countries remaining in our dataset, with 15 first order predictors (and 300 if we consider interaction and second order terms!). Low number of observations put us at risk of overfitting the data, which inflates the variance of our model. Feature selection is therefore needed so we won't be using all 15 predictors (or 300). Also, from the correlation matrix presented above, we know that some predictors are highly correlated and are almot linearly dependent. Hence, we are not at risk of increasing bias if we know which ones to throw away.
+
+The Lasso regulisation impose a L1 penalty on the coefficients: every coefficient is being shrinked, and some even as low as zero. This is practically equal to feature selection since feature with zero coefficient has no effect in the model. 
+
+```{r LassoCV}
+mod_cv <- hdi::lasso.cv(x =  as.matrix(dplyr::select(world_bank_imputed, -U5.Mortality)),
+                        y = log(world_bank_imputed$U5.Mortality),
+                        nfolds = 5)
+lasso_terms <- names(world_bank_imputed)[mod_cv]
+lasso_terms
+```
+```{r Multiple Regression Using L1 norm terms, results=TRUE}
+Lasso_multiple_model <- lm(data = Multiple_train[c(lasso_terms, "U5.Mortality")], log(U5.Mortality) ~ .)
+summary(Lasso_multiple_model)
+Lasso_multiple_fitted_values <- predict(Lasso_multiple_model, newdata = Multiple_train)
+Lasso_multiple_residuals <- resid(Lasso_multiple_model)
+```
+
+### The test RMSE and $R^2$ are as follow
+```{r, results=TRUE}
+postResample(pred = predict.lm(Lasso_multiple_model, Multiple_test), obs = log(Multiple_test$U5.Mortality))
+```
+
+### VIF
+L1 norm penalisation is successful in removing predictor variables which are linear combination of there terms.
+```{r, results=TRUE}
+car::vif(Lasso_multiple_model)
+```
+
+```{python}
+regression_graph(r.Multiple_train["U5.Mortality"].apply(np.log), r.Lasso_multiple_fitted_values, r.Lasso_multiple_residuals)
+```
+
+### Normality Test
+
+```{r, results=TRUE}
+Lasso_multiple_shapiro <- shapiro.test(Lasso_multiple_residuals)
+if (Lasso_multiple_shapiro$p.value > ALPHA) {
+  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
+}  
+   
+```
+
+```{r, results=TRUE}
+Lasso_multiple_anderson <- ad.test(Lasso_multiple_residuals)
+if (Lasso_multiple_anderson$p.value > ALPHA) {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
+}  
+```
+
+### Heteroskedasticity test
+```{r, results=TRUE}
+Lasso_multiple_bp <- bptest(Lasso_multiple_model)
+if (Lasso_multiple_bp$p.value > ALPHA) {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
+} else {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
+} 
+```
+
+Using the terms yielded by cross validation Lasso regression, the results looks promsing. First, residuals are Gaussian and constant. Secondly, VIF shows there are no multicolinearity. Thirdly, T-test on individual coefficient estimates, as well as F-test on the overall model are sigificant. 
+This is a multiple linear regression with sigificant results and met all model assumptions. 
+
+# Best Subset Selection
+***
+
+Given the vast number of predictor variables, one must filter useful variables from unuseful ones. Including variables that provide no extra information in predicting the response will inflate variance; estimates of coefficients will be unstable in regards to other predictor variables, and statistical power will suffer due to inflated standard error. 
+
+The following procedure attempts to select the 'best' set of predictor variables used for predicting the response. 
+
+## Algorithm
+Let $M_0$ denote the null model which contains no predictors, this model simply predicts the sample mean of each observation
+
+  - for $k = 1,2,...n$
+    1. Fit all ${n\choose k}$ models that contain exactly k predictors
+    2. Pick the best among these ${n\choose k}$ models, and call it $M_k$. Here the best is defined as having the smallest RSS, or an equivalent measure.
+    
+  - Select the single best model among $M_0$, $M_1$,...,$M_n$ mean squared error and adjusted $R^2$.
+
+```{python}
+#Initialization variables
+best_subset_data = r.world_bank_imputed
+
+X = best_subset_data.drop(["U5.Mortality"], axis = 1)
+Y = best_subset_data["U5.Mortality"].apply(np.log)
+
+#best_sub_features = find_best_subset(X, Y)
+best_sub_features = pd.read_pickle('best_sub_features.pkl')
+```
+
+There is a total of `r nrow(py$best_sub_features)` subsets.
+
+```{python}
+min_MSE = best_sub_features[best_sub_features.groupby('numb_features')['MSE'].transform(min) == best_sub_features['MSE']]
+max_adj_R2 = best_sub_features[best_sub_features.groupby('numb_features')['Adj_R_squared'].transform(max) == best_sub_features['Adj_R_squared']]
+```
+
+### Best Subsets
+
+Here is a peek into the top ten best subsets
+```{r, results=TRUE}
+head(py$min_MSE, 10)
+```
+
+For every $k_i$ (from 1 to `r ncol(world_bank_imputed)`), we pick out the subset with smallest test MSE, then store it in a dataframe. We also pick out the subset with highest test adjusted $R^2$, and store them in another dataframe. 
+We then sort the two data frames by adjusted $R^2$ and MSE.
+
+```{r}
+#min_MSE <- dplyr::select(py$min_MSE, -Adj_R_squared)
+#dplyr::arrange(min_MSE, by_group = MSE)
+```
+
+## Plotting the best subset selection process
+
+```{python Plot Best subset selection process, render = TRUE}
+#Adding columns to the dataframe with MSE and R squared values of the best subset
+best_sub_features['min_MSE'] = best_sub_features.groupby('numb_features')['MSE'].transform(min)
+best_sub_features['max_R_squared'] = best_sub_features.groupby('numb_features')['Adj_R_squared'].transform(max)
+
+fig = plt.figure(figsize = (16,6))
+
+ax = fig.add_subplot(1, 2, 1)
+ax.scatter(best_sub_features.numb_features,best_sub_features.MSE, alpha = .2, color = 'darkblue' )
+ax.set_xlabel('# Predictor')
+ax.set_ylabel('MSE')
+ax.set_title('MSE - Best subset selection')
+ax.plot(best_sub_features.numb_features, best_sub_features.min_MSE,color = 'r', label = 'Best subset')
+ax.legend()
+
+ax = fig.add_subplot(1, 2, 2)
+ax.scatter(best_sub_features.numb_features,best_sub_features.Adj_R_squared, alpha = .2, color = 'darkblue' )
+ax.plot(best_sub_features.numb_features,best_sub_features.max_R_squared,color = 'r', label = 'Best subset')
+ax.set_xlabel('# Predictor')
+ax.set_ylabel('Adjusted R squared')
+ax.set_title('Ajusted R_squared - Best subset selection')
+ax.legend()
+
+plt.show()
+```
+
+The graph on the left illustrates the mean square error (mse) for each model among each $k$ number of predictor variables. The red line connects models with the lowest mse in each $k$. The graph on the right shows the same for adjuated $R^2$. 
+
+According to the graphs above, the more predictor variables included in the model, the lower the mse and higher the adjusted $R^2$. How ever, both red lines level off at 6 predictors. This suggests the difference in model performance between 6 and 11 predictor variables are miniscure. In the spirit of parsimoniousness, one should opt for a simpler model with fewer variables. This minimises colinearity and variance in estimates of predictor coefficients.   
+
+```{python Print Best Subset Names, results = TRUE}
+best_subset_features = min_MSE[min_MSE["numb_features"] == 6]["features"].tolist()
+best_subset_features = list(best_subset_features[0])
+print(best_subset_features)
+```
+
+## Plot Response variable against Best subset predictors
+
+wait for Twiggie' report
+
+```{python Plot Y Against X, render = TRUE}
+fig = plt.figure(figsize = (12,6))
+X = r.world_bank_imputed[best_subset_features]
+Y = r.world_bank_imputed["U5.Mortality"]
+for i in range(0, X.shape[1]):
+    ax = fig.add_subplot(2,3,i+1)
+     
+    ax.scatter(X.iloc[:,i], Y)
+    ax.set_xlabel(X.columns.tolist()[i])
+    ax.set_ylabel("U5 Mortality")
+    
+    weights = np.polyfit(X.iloc[:,i], Y, 1)
+    model = np.poly1d(weights)
+    pred = model(X.iloc[:,i])
+    xp = np.linspace(X.iloc[:,i].min(),X.iloc[:,i].max(),100)
+    pred_plot = model(xp)
+    ax.plot(xp, pred_plot, "r")
+    
+plt.suptitle("U5 Mortality v.s. Predictor")
+plt.tight_layout()
+fig.subplots_adjust(top=0.9)
+plt.show()
+```
+
+The relation between `U5.Mortality` and the predictor variables are highly non-linear. As mention a few sections back, log transformation on both the response and predictor can improve linearity as well as maintaining linear regression assumptions.
+
+```{r}
+#Pick best subset variables
+log_best_subset = world_bank_imputed[c(py$best_subset_features, "U5.Mortality")]
+
+#log Y
+log_best_subset$U5.Mortality <- log(log_best_subset$U5.Mortality)
+
+#log some variables
+log_best_subset[,"Age.dependency.ratio.old"] <- log(log_best_subset[,"Age.dependency.ratio.old"])
+log_best_subset[,"Mortality.gender.diff"] <- log(log_best_subset[,"Mortality.gender.diff"])
+log_best_subset[,"GDP.per.capita..PPP..constant.20"] <- log(log_best_subset[,"GDP.per.capita..PPP..constant.20"])
+
+#there is a outliner in Age.dependency.ratio.old
+log_best_subset <- log_best_subset[log_best_subset$Age.dependency.ratio.old >= 0,]
+#remove outliners
+# log_best_subset <- apply(log_best_subset, 2, remove_outliers)
+# log_best_subset <- log_best_subset[complete.cases(log_best_subset),]
+# log_best_subset <- as.data.frame(log_best_subset)
+
+Best_sub_inTrain <- createDataPartition(y=log_best_subset$U5.Mortality, p=0.90, list=FALSE)
+Best_sub_train <- log_best_subset[Best_sub_inTrain,]
+Best_sub_test <- log_best_subset[-Best_sub_inTrain,]
+```
+
+
+```{python Plot log(Y) Against log(X), reder = TRUE}
+fig = plt.figure(figsize = (12,6))
+X = r.Best_sub_train.drop("U5.Mortality", axis = 1)
+Y = r.Best_sub_train["U5.Mortality"]
+for i in range(0, X.shape[1]):
+    ax = fig.add_subplot(2,3,i+1)
+
+    ax.scatter(X.iloc[:,i], Y)
+    ax.set_xlabel(X.columns.tolist()[i])
+    ax.set_ylabel("U5 Mortality")
+
+    weights = np.polyfit(X.iloc[:,i], Y, 1)
+    model = np.poly1d(weights)
+    pred = model(X.iloc[:,i])
+    xp = np.linspace(X.iloc[:,i].min(),X.iloc[:,i].max(),100)
+    pred_plot = model(xp)
+    ax.plot(xp, pred_plot, "r")
+
+plt.suptitle("U5 Mortality v.s. Predictor (transformed)")
+plt.tight_layout()
+fig.subplots_adjust(top=0.9)
+plt.show()
+```
+
+```{r, results=TRUE}
+Best_sub_model <- lm(data = Best_sub_train, U5.Mortality~.)
+summary(Best_sub_model)
+Best_sub_fitted_values <- predict(Best_sub_model, newdata = Best_sub_train)
+Best_sub_residuals <- resid(Best_sub_model)
+```
+
+### The test RMSE and $R^2$ are as follow
+```{r, results = TRUE}
+postResample(pred = predict.lm(Best_sub_model, Best_sub_test), obs = Best_sub_test$U5.Mortality)
+```
+
+### VIF
+There don't seem to be colinearity
+```{r, results = TRUE}
+car::vif(Best_sub_model)
+```
+
+
+```{python}
+regression_graph(r.Best_sub_train["U5.Mortality"], r.Best_sub_fitted_values, r.Best_sub_residuals)
+```
+
+### Normality Test
+
+```{r, results=TRUE}
+Best_sub_shapiro <- shapiro.test(Best_sub_residuals)
+if (Best_sub_shapiro$p.value > ALPHA) {
+  print('According to Shapiro-Wilk test of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Shapiro-Wilk test of normality, residuals do not look Gaussian (reject H0)')
+}  
+   
+```
+
+```{r, results=TRUE}
+Best_sub_anderson <- ad.test(Best_sub_residuals)
+if (Best_sub_anderson$p.value > ALPHA) {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals look Gaussian (fail to reject H0)')
+} else {
+  print('According to Anderson-Darling test for the composite hypothesis of normality, residuals do not look Gaussian (reject H0)')
+}  
+```
+
+### Heteroskedasticity test
+```{r, results=TRUE}
+Best_sub_bp <- bptest(Best_sub_model)
+if (Best_sub_bp$p.value > ALPHA) {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals look constant (fail to reject H0)')
+} else {
+  print('According to Breusch-Pagan test against heteroskedasticity, residuals do not look constant (reject H0)')
+} 
+```
