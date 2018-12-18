@@ -1,10 +1,13 @@
 ---
 title: 
 output: pdf_document
-fontsize: 10pt
+fontsize: 10.5pt
 geometry: margin=0.8in
 linestretch: 1.3
+biblio-style: "apa"
+bibliography: "project-references.bib"
 ---
+\setcounter{page}{3}
 
 According to Worldbank, “mortality indicators are important indicators of health status in a country.” This report aims at finding a series of predictors which can most parsimoniously and accurately describe and predict children mortality rate. The finds may be useful in the following ways:
 
@@ -124,7 +127,7 @@ breusch_pagan_test <- function(model){
 }
 ```
 
-```{python}
+```{python Self Defined Functions Python}
 #some self defined functions
 
 def calculate_mse(y_true, y_pred, n, k):
@@ -139,12 +142,12 @@ def regression_graph(true_values, fitted_values, residuals):
   ax2 = plt.subplot(222)
   ax3 = plt.subplot(212)
   
-  ax1.scatter(true_values, fitted_values)
+  ax1.scatter(true_values, fitted_values, s = 3)
   ax1.set_xlabel("True Values")
   ax1.set_ylabel("Fitted values")
   ax1.set_title("True Values v.s. Fitted values")
   
-  ax2.scatter(fitted_values, residuals, s = 1)
+  ax2.scatter(fitted_values, residuals, s = 3)
   ax2.axhline(y = 0, color='r', linestyle = '--')
   ax2.set_xlabel("Fitted values")
   ax2.set_ylabel("Residual")
@@ -159,7 +162,7 @@ def response_vs_predictor_plot(X, Y, title, order = 1):
   for i in range(0, X.shape[1]):
     ax = fig.add_subplot(2,3,i+1)
     
-    ax.scatter(X.iloc[:,i], Y, s = 1)
+    ax.scatter(X.iloc[:,i], Y, s = 3)
     ax.set_xlabel(X.columns.tolist()[i])
     ax.set_ylabel("U5 Mortality")
     
@@ -227,7 +230,7 @@ First remove a few variables: `Year`, `YearCode`, `Country Name`, `Country Code`
 
 These variables are included for naming purpose and contribute no added value to our subsequent analysis.
 
-The variable `Age dependency ratio (% of working-age population)`"` includes people who are below 15 or above than 64. Mean while, the variable `Age dependency ratio, young (% of working-age population)` only includes people below 15. To seperate these two, we will subtract the seond from the first.
+The variable `Age dependency ratio (% of working-age population)`"` includes people who are below 15 or above than 64. Mean while, the variable `Age dependency ratio, young (% of working-age population)` only includes people below 15. To separate these two, we will subtract the send from the first.
 The original "Age dependency ratio (% of working-age population)" is renamed to `"`Age dependency ratio (% of working-age population)`.
 ```{r}
 #Drop the column Year and YearCode
@@ -269,7 +272,9 @@ rownames(world_bank) <- NULL
 
 ## Impute Data with Multiple Imputation by Chained Equations (MICE)
 
-Description
+Missing data are imputed using Multiple (or also called Multivariate) Imputation by
+Chained Equations (MICE). Many variables in the original dataset are linear combinations of others. Hence parametric approach for estimating missing data is impossible because the dataset is singular. This report uses data imputed by means of Random Forest, which is a non-parametric method.
+Random Forest has an additional benifit of not requiring data to be missing at random (which is otherwise required for parametric MICE) [@shah2014comparison]. 
 ```{r MICE Impute}
 world_bank_imputed <- mice(data = world_bank, m = 10, method="rf", seed = STAT5102, printFlag = FALSE)
 world_bank_imputed <- complete(world_bank_imputed)
@@ -285,13 +290,13 @@ qplot(world_bank_imputed$U5.Mortality, geom="histogram", bins = sqrt(nrow(world_
 ```
 
 The response variable for this project is the quantitative variable, **Mortality Rate Under 5, Per 1000/Births**; let's call it `U5.Mortality` from here onward. 
-`U5.Mortality` is measured in every 1000 deaths per births. While rate data is theoritcally infinitely divisible, `U5.Mortality` is Poission disdributed because it is derived from count data. There are decimal points only because it is divided by 1,000 for easy comparison. The response variable having Poission properties will violate many of the linear regression assumptions. This will be discussed in a later session.
-Exploring the relstionship between `U5.Mortality` and each of the predictor variables would very much be benifitil. However, there are still `r ncol(world_bank)` variables remaining in the dataset, even after deletion. Hence we will focus on the predictor variables instead.
+`U5.Mortality` is measured in every 1000 deaths per births. While rate data is theoretically infinitely divisible, `U5.Mortality` is Poisson distributed because it is derived from count data. There are decimal points only because it is divided by 1,000 for easy comparison. The response variable having Poisson properties will violate many of the linear regression assumptions. This will be discussed in a later session.
+Exploring the relationship between `U5.Mortality` and each of the predictor variables would very much be beneficial. However, there are still `r ncol(world_bank)` variables remaining in the dataset, even after deletion. Hence we will focus on the predictor variables instead.
 
 ### Correlation Heat Map
 
-A heatmap give a rough idea to how variables correlate to each other. The lighter the colour, the higher the correlation between two variables. Here, the bottom tick labels are omitted since variables are grouped by names anyway. Variables have high correlation with neighboring variables. This is expected as variables whcih are similar in nature have similar names. 
-What's interesting is that instead of variables correlate individually, sets of variable often correlate highly with each other. This can be seen in the graph as there are many light blue boxes and dark blue boxs. For example, all Mortality related variables have high correlation with all Life Expectancy related variables. This can be a problem because there are many variables that are highly correlated to each other. Worst, there may be many variables that are linear combinations of others. One must be judicious when choosing variable in a regression analysis to avoid (multi)collinearity.
+A heatmap give a rough idea to how variables correlate to each other. The lighter the colour, the higher the correlation between two variables. Here, the bottom tick labels are omitted since variables are grouped by names anyway. Variables have high correlation with neighboring variables. This is expected as variables which are similar in nature have similar names. 
+What's interesting is that instead of variables correlate individually, sets of variable often correlate highly with each other. This can be seen in the graph as there are many light blue boxes and dark blue boxes. For example, all Mortality related variables have high correlation with all Life Expectancy related variables. This can be a problem because there are many variables that are highly correlated to each other. Worst, there may be many variables that are linear combinations of others. One must be judicious when choosing variable in a regression analysis to avoid (multi)collinearity.
 ```{r Correlation Heat Map, fig.height = 2, fig.width = 5}
 cormat <- round(cor(world_bank_imputed),2)
 melted_cormat <- reshape2::melt(cormat)
@@ -307,23 +312,11 @@ ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) +
 
 # Exploring correlations with OLS regression
 
-Not all variables are useful in the dataset. Some might be highly correlated with each other and thus create redundency and colinearity/multicolinearity.
-
 Let's start by looking at the response variable, i.e. the Mortality rates
 
-```{r,  results = TRUE}
-mortality_names_index = grep("Mortality$", colnames(world_bank_imputed))
-mortality_names <- colnames(world_bank_imputed)[mortality_names_index]
-mcor<-round(cor(cor(world_bank[mortality_names])),2)
-upper<-mcor
-upper[upper.tri(mcor)]<-""
-upper<-as.data.frame(upper)
-upper
-```
+From the correlation heatmap, all Mortality related variables are highly correlated. Highly correlated predictors can lead to instability in our estimator, as well as increased variance. 
 
-We see that everything is linearly dependant; they are essentially the same measure. Highly correlated predictors can lead to instability in our estimator, as well as increased variance. 
-
-Not only do these variables covary, their vaule are also extremely close to each other. It is very tempting to just use a one of these variables to predict the response variable. Let's do this and see what's gonna happen if we just pick one of these predictors to predict `U5.Mortality`? Here we use Mortality rate, infant (per 1,000 births).
+Not only do these variables covary, their value are also extremely close to each other. It is very tempting to just use a one of these variables to predict the response variable. Let's pick one of these predictors to predict `U5.Mortality`? Here `Mortality rate, infant (per 1,000 births)` is used.
 
 ```{r OLS Regression, results = TRUE}
 OLS_model <- lm(data = world_bank_imputed, U5.Mortality ~ Infant.Mortality)
@@ -338,7 +331,9 @@ regression_graph(r.world_bank_imputed["U5.Mortality"], r.OLS_fitted_values, r.OL
 
 #### Normality Test
 
-Both Shapiro–Wilk (Shapiro, & Wilk, 1965) and Anderson-Darling (Anderson, & Darling, 1952) tests tests the null hypothesis that a statistical sample $x_1$, ..., $x_n$ came from a normally distributed population. Here, these tests are used to test for normality of the model residuals. Normality tests tend to be not very statistically powerful, hence more than one tests are used.
+
+
+Both Shapiro–Wilk [@shapiro1965analysis] and Anderson-Darling [@anderson1952asymptotic] tests tests the null hypothesis that a statistical sample $x_1$, ..., $x_n$ came from a normally distributed population. Here, these tests are used to test for normality of the model residuals. Normality tests tend to be not very statistically powerful, hence more than one tests are used.
 
 $H_0$: Residual follow a normal distribution
 
@@ -354,7 +349,7 @@ anderson_test(OLS_residuals)
 
 #### Heteroskedasticity test
 
-The **Breusch–Pagan test** (Breusch, & Pagan, 1979) is used to test for heteroskedasticity in a linear regression model.
+The **Breusch–Pagan test** [@breusch1979simple] is used to test for heteroskedasticity in a linear regression model.
 
 $H_0$: Variance of the residuals do not dependent on the values of the independent variables.
 
@@ -364,11 +359,11 @@ $H_1$: Variance of the residuals is dependent on the values of the independent v
 breusch_pagan_test(OLS_model)
 ```
 
-None of the Normality test passed; the key assumptions of multiple regression are valid in this model. 
+None of the Normality test passed; the key assumptions of regression are valid in this model. 
 
-The bottom line is, we cannot use Simple Linear Regression (OLS) simply because high correlation between predictor and outcome. We will not further investigate OLS in this report. 
+The bottom line is, we cannot use Simple Linear Regression (OLS) simply because high correlation between predictor and outcome. OLS will not be further discussed. 
 
-How about the other two mortality indicators? After some eyeball investigation, it is not difficult to see that our response variable is merely the average of Male/Female mortality rate. Hence we will not include these two into our analysis because they are essentially the same thing as our response variable; they should not be included in any formal analysis because one could argue that this is a form of data leakage. However, it might be interesting to see how the DIFFERENCE in Male/Female mortality rate affects our response variable. Therefore we can consider adding the DIFFERENCE in Male/Female mortality rate into our dataset. Note that this is a linear combination of two variabels which is highly correlted to the response. The outcome will still be highly correlated; this is only a means of reducing reduncancy while perserving the most information.
+How about the other two mortality indicators? After some eyeball investigation, it is not difficult to see that the response variable is merely the average of Male/Female mortality rate. Hence these two variables will not be included in analysis; they should not be included in any formal analysis because one could argue that this is a form of data leakage. However, it might be interesting to see how the DIFFERENCE in Male/Female mortality rate affects the response variable. Therefore  a new variable is added: DIFFERENCE in Male/Female mortality rate. Note that this is a linear combination of two variables which is originally highly correlated to the response. The outcome is still highly ocrrelated to the response but having one fewer variable is likely to reduce variance. 
 
 Finally, because of the following:
 
@@ -377,7 +372,7 @@ Finally, because of the following:
 * almost no difference in absolute value
 * domain knowledge tell us that they are indeed almost the same measure
 
-we decide to remove infant mortality rate.
+infant mortality rate is removed.
 
 ```{r Mortality Gender Differenes Variables}
 #add gender difference
@@ -390,7 +385,7 @@ world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% 
 world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Infant.Mortality"))]
 ```
 
-We do the same thing for Life Expectancy: We combind "Life expectancy at birth", both male and female, and generate a new variable called `Life.exp.gender.diff`.
+The same is done for Life Expectancy: "Life expectancy at birth", both male and female, are combined and is called `Life.exp.gender.diff`.
 ```{r Life expectency Gender Differenes Variables}
 #do the same thing for Life expectancy 
 world_bank_imputed["Life.exp.gender.diff"] <- abs(world_bank_imputed["Life.expectancy.at.birth..female"] - world_bank_imputed["Life.expectancy.at.birth..male.."])
@@ -402,7 +397,7 @@ world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% 
 
 # Multiple Regression
 
-Perhapes a set of predictor variables can be better explain the variations in Mortality rate?
+Perhaps a set of predictor variables can be better explain the variations in Mortality rate?
 
 ```{r Multiple Regression, results=TRUE}
 Multiple_model <- lm(data = world_bank_imputed, U5.Mortality ~ .)
@@ -430,11 +425,11 @@ anderson_test(Multiple_residuals)
 breusch_pagan_test(Multiple_model)
 ```
 
-Again, none of the Normality test passed; the key assumptions of multiple regression are valid in this model. 
+Again, none of the assumption tests passed; the key assumptions of multiple regression are not valid in this model. 
 
 ## Multicollinearity and VIF
 
-Multicollinearity exists when a predictor variable is a linear combination of other(s) predictor variables. Multicollinearity can result in instability of regression coefficient: the estimated regression coefficient of one variable sway hugely on new predictors are included in the model. Statistical power also suffers due to inflated standard error: this makes proving regression coefficient useful difficult as the null hypothesis is harder to reject. The overall effect is reduced  precision in the model. 
+Multicollinearity exists when a predictor variable is a linear combination of other(s) predictor variables. Multicollinearity can result in instability of regression coefficient: the estimated regression coefficient of one variable sway hugely when new predictors are placed. Statistical power also suffers due to inflated standard error: proving regression coefficient to be useful become more difficult. The overall effect is reduced model precision. 
 
 Variance Inflation Factor (VIF) is a score used to measure the extend of which (multi)colinearity exist among predictor variables. This measure is easy to reproduce.
 
@@ -450,12 +445,12 @@ $$\mathrm{VIF_i}= \frac{1}{1-R^2_i}$$
 sort(car::vif(Multiple_model), decreasing = TRUE)[1:2]
 ```
 
-There are enormous milticolinearity. For example, `Birth rate crude/1.000 people` has VIF well above 90.
-Many of these predictor variables are linear combinations of others. They provide no additioinal information; their presence increase variance in coefficient estimation and reduce statistical power in proving the coefficients are useful. According to Hair et al.(1995), a score of 10 and above is considered problematic and that particular variable should be removed. 
+The fisrst two VIF indicates enormous milticolinearity. For example, `Birth rate crude/1.000 people` has VIF well above 90.
+Many of these predictor variables are linear combinations of others. They provide no additional information; their presence increase variance in coefficient estimation and reduce statistical power in proving the coefficients are useful. According to Hair et al.[-@hairjr], a score of 10 and above is considered problematic and that particular variable should be removed. 
 
 # Regression Model
 
-The work above are of exploratory nature. We found that both OLS and multiple regression result in residuals that are both heteroskedastic and non Gaussian. We must perform transformation.
+The work above are of exploratory nature. We found that both OLS and multiple regression result in residuals that are both heteroskedastic and non Gaussian.
 
 The following is our current regression model:
 
@@ -467,29 +462,28 @@ where
 \epsilon \sim N(\mu,\sigma^2)
 \end{equation}
 
-We are regressing a continous variable Y on a set of Xs. The model assumes Y to be the sum of all Xs multiplied by their corrosponding coefficients, plus random normal error. This model works well if we can plug in numbers on the Right Hand Side(RHS) and get the corrosponding value on the Left Hand Side (LHS). The regression model shown above relies heavily on a few assumptions:
+A continuous variable Y is being regressed on a set of Xs. The model assumes Y to be the sum of all Xs multiplied by their corresponding coefficients, plus random normal error. This model works well if  numbers on the Right Hand Side(RHS) result in the value on the Left Hand Side (LHS). The regression model shown above relies heavily on certain assumptions:
 
-* Constant Error terms
-* Gaussian Error terms
-* Error terms uncorrelated to fitted values and predictor variables.
+* Homoskedastic Error
+* Gaussian Error
 * LHS of the model be strictly positive.
 
-We have already concluded we failed to obtain constant and Gaussian error terms.
+The forst two assumptions have already been violated.
 
-Note that the sum on the RHS can sometimes be negative depending on the input and coefficients. Unfortunately, the response variable `U5.Mortality` can not take negative values; our model is broken when ever the sum on of the RHS comes out negative. Worst, as mentioned in the exploratory data analysis section, `U5.Mortality` has Poission properties: the variance in `U5.Mortality` is somewhat correlated to its mean. 
+Note that the sum on the RHS can sometimes be negative depending on the input and coefficients. Unfortunately, the response variable `U5.Mortality` can not take negative values; the model is broken when ever the sum on of the RHS comes out negative. Worst, as mentioned in the exploratory data analysis section, `U5.Mortality` exhibits Poisson properties: the variance in `U5.Mortality` is somewhat correlated to its mean. 
 
-Because of this, we perform a log transformation on the response variable. 
+Because of this, a log transformation is performed on the response variable. 
 
 \begin{equation}
 \log(Y) = \beta_0 + \beta_1 X_1 + ... + \beta_p X_p + \epsilon
 \end{equation}
 
-A log transformation on the response variable has the following benifits:
+A log transformation on the response variable has the following benefits:
 
-1. With a log transformation on the response variable, values on both sides of the equation may take negative values, and values on the RHS are no longer restricted by the response only taking positive values. 
-2. A log transformation on a Poission variable decouples the its variance from the mean. This ensures each $y_i$ to be independently distributed. A Poission variable may be the reason for both OLS and Multiple regression both yielding extremely non-Gaussian and non-constant residuals.
+1. Values on both sides of the equation may take negative values 
+2. A log transformation on a Poisson variable decouples the its variance from the mean. This ensures each $y_i$ to be independently distributed.
 
-Simultanous transformation on predictor variables may be required to maintain linearity and some other assumptions. This will be discussed later in this report.
+Simultaneous transformation on predictor variables may be required to maintain linearity and some other assumptions. This will be discussed later.
 
 ```{r Box-Cox, render = FALSE}
 bc <- MASS::boxcox(lm(world_bank_imputed$U5.Mortality~1), plotit = FALSE)
@@ -507,9 +501,9 @@ Lasso_train_set <- world_bank_imputed[Lasso_inTrain,]
 
 # Feature Selection Using Lasso Regression
 
-There are relatively few countries around the world compared to the amount of data we generate. After some initial wrangling, we only have 182 countries remaining in our dataset, with 15 first order predictors (and 300 if we consider interaction and second order terms!). Low number of observations put us at risk of overfitting the data, which inflates the variance of our model. Feature selection is therefore needed so we won't be using all 15 predictors (or 300). Also, from the correlation matrix presented above, we know that some predictors are highly correlated and are almot linearly dependent. Hence, we are not at risk of increasing bias if we know which ones to throw away.
+There are `r nrow(world_bank_imputed)` observations (countries) remaining in the dataset, along with `r ncol(world_bank_imputed)` predictors. One might overfit the data because there are few observations, which inflates variance. Feature selection is therefore helpful in reducing the number of variables. 
 
-The Lasso regulisation impose a L1 penalty on the coefficients: every coefficient is being shrinked, and some even as low as zero. This is practically equal to feature selection since feature with zero coefficient has no effect in the model. 
+The Lasso regression imposes a L1 penalty on the coefficients: every coefficient is being shrinked, and some even as low as zero. This is a form of feature selection since feature with zero coefficient has no effect in the model. 
 
 ```{r LassoCV}
 mod_cv <- hdi::lasso.cv(x =  as.matrix(dplyr::select(Lasso_train_set, -U5.Mortality)),
@@ -528,16 +522,16 @@ Lasso_f_test <- anova(lm(data = Lasso_train_set, log(U5.Mortality)~1), Lasso_mul
 Lasso_f_p <- round(Lasso_f_test$`Pr(>F)`[2], 2)
 ```
 
-#### F test for overall sigificance
+#### F test for overall significance
 $H_0$: No linear relationship between Mortality rate and all variables 
 
 $H_1$: At least one independent variables affects Y
 
-The p-value is `r Lasso_f_p`, we reject H0 and conclude that these independent variables have an overall effect on Y. 
+The p-value is `r Lasso_f_p`, H0 is rejected; independent variables have an overall effect on Y. 
 $R^2_{adj}$ is `r summary(Lasso_multiple_model)$adj.r.squared`. The model is able to explain over `r scales::percent(summary(Lasso_multiple_model)$adj.r.squared)` of variance in `U5.Mortality`.
 
 #### VIF
-L1 norm penalisation is successful in removing predictor variables which are linear combination of there terms.
+L1 norm penalisation is successful in removing predictor variables which are linear combinations of other terms. The largest VIFs are both below 10.
 ```{r, results=TRUE}
 sort(car::vif(Lasso_multiple_model), decreasing = TRUE)[1:2]
 ```
@@ -562,13 +556,15 @@ breusch_pagan_test(Lasso_multiple_model)
 ```
 Through the above testing, we can prove the key assumptions of multiple regression are valid in this model. 
 
-Using the terms yielded by cross validation Lasso regression, the results looks promsing. First, residuals are Gaussian and constant. Secondly, VIF shows there are no multicolinearity. Thirdly, T-test on individual coefficient estimates, as well as F-test on the overall model are sigificant. 
-This is a multiple linear regression with sigificant results and met all model assumptions. 
+Using the terms yielded by cross validation Lasso regression, the results looks promising. 
+
+* Residuals are Gaussian and constant. 
+* VIF shows there are no multicolinearity. 
+* T-test on most individual coefficient estimates, as well as F-test on the overall model are significant. 
+
+This model is worth keeping since results are significant and all model assumptions are met. 
 
 # Best Subset Selection
-
-Given the vast number of predictor variables, one must filter useful variables from unuseful ones. Including variables that provide no extra information in predicting the response will inflate variance, and result in high VIF as mentioned earlier. 
-
 The following procedure attempts to select the 'best' set of predictor variables used for predicting the response. 
 
 ## Algorithm
@@ -636,15 +632,15 @@ ax.scatter(best_sub_features.numb_features,best_sub_features.Adj_R_squared, alph
 ax.plot(best_sub_features.numb_features,best_sub_features.max_R_squared,color = 'r', label = 'Best subset')
 ax.set_xlabel('# Predictor')
 ax.set_ylabel('Adjusted R squared')
-ax.set_title('Ajusted R_squared - Best subset selection')
+ax.set_title('Adjusted R_squared - Best subset selection')
 ax.legend()
 
 plt.show()
 ```
 
-The graph on the left illustrates the mean square error (mse) for each model among each $k$ number of predictor variables. The red line connects models with the lowest mse in each $k$. The graph on the right shows the same for $R^2_{adj}$. 
+The graph on the left illustrates the mean square error (mse) for each model among each $k$ number of predictor variables. The red line connects models with the lowest mse in each $k$. The graph on the right shows the same but in $R^2_{adj}$. 
 
-According to the graphs above, the more predictor variables included in the model, the lower the mse and higher the $R^2_{adj}$. How ever, both red lines level off at 6 predictors. This suggests the difference in model performance between 6 and 11 predictor variables are miniscure. In the spirit of parsimoniousness, one should opt for a simpler model with fewer variables. This minimises colinearity and variance in estimates of predictor coefficients.   
+The graphs that the more predictor variables are included, the lower the mse and higher the $R^2_{adj}$. However, both red lines level off at 6 predictors. This suggests the difference in model performance between 6 and more predictor variables are miniscule. In the spirit of parsimony, one should opt for a simpler model with fewer terms. This minimises colinearity and variance in estimates of predictor coefficients.   
 
 ```{python Print Best Subset Names, results = TRUE}
 best_subset_features = min_MSE[min_MSE["numb_features"] == 6]["features"].tolist()
@@ -665,9 +661,9 @@ response_vs_predictor_plot(X, Y, "U5 Mortality v.s. Predictor", order = 2)
 
 ### Residuals when Y is regressed on each individual predictor
 
-The regression plot gives a few insights:
+The regression plot gives some insights:
 
-* The relation between `U5.Mortality` and the predictor variables are highly non-linear. For example, `GDP per Capita` has a L-shaped relationship with `U5.Mortality`. This suggest a logarithmic relationship.
+* The relation between `U5.Mortality` and the predictor variables are highly non-linear. e.g. `GDP per Capita` has a L-shaped relationship with `U5.Mortality`. This suggest a logarithmic relationship.
 
 The following procedures can improve the above issues:
 
@@ -721,12 +717,12 @@ Best_sub_f_test <- anova(lm(data = log_best_subset, U5.Mortality~1), Best_sub_mo
 Best_sub_f_p <- round(Best_sub_f_test$`Pr(>F)`[2], 2)
 ```
 
-#### F test for overall sigificance
+#### F test for overall significance
 $H_0$: No linear relationship between Mortality rate and all variables 
 
 $H_1$: At least one independent variables affects Y
 
-The p-value is `r Best_sub_f_p`, we reject $H_0$ and conclude that these independent variables have an overall effect on Y. 
+The p-value is `r Best_sub_f_p`, H0 is rejected; independent variables have an overall effect on Y.
 $R^2_{adj}$ is `r summary(Best_sub_model)$adj.r.squared`. The model is able to explain over `r scales::percent(summary(Best_sub_model)$adj.r.squared)` of variance in `U5.Mortality`.
 
 #### VIF
@@ -762,16 +758,15 @@ Through the above testing, we can prove the key assumptions of multiple regressi
 Best_Subset_Validation_Result <-postResample(pred = predict.lm(Best_sub_model, log_best_subset_validate), obs = log_best_subset_validate$U5.Mortality)
 Lasso_Validation_Result <- postResample(pred = predict.lm(Lasso_multiple_model, Lasso_validation_set), obs = log(Lasso_validation_set$U5.Mortality))
 ```
-According to validation, the Bestsubset model yields RMSE:`Best_Subset_Validation_Result[1]` and $R^2$: `Best_Subset_Validation_Result[2]`; Lasso model yields RMSE:`Lasso_Validation_Result[1]` and $R^2$: `Lasso_Validation_Result[2]`
-There are less error in Bestsubset's prediction, as well as more explained variance. Hence Bestsubset model is the model whcih performs best. 
+According to validation, the Best subset model yields RMSE:`Best_Subset_Validation_Result[1]` and $R^2$: `Best_Subset_Validation_Result[2]`; Lasso model yields RMSE:`Lasso_Validation_Result[1]` and $R^2$: `Lasso_Validation_Result[2]`
+There are less error in Best subset's prediction, as well as more explained variance. Hence Best subset model is the model of choice. 
 
 # Conclusion
 
-#Reference
 
-
-Shapiro S S & Wilk M B. An analysis of variance test for normality (complete samples). Biometrika 52:591-611, 1965.
-
-T. W. Anderson & D. A. Darling. Asymptotic theory of certain "goodness-of-fit" criteria based on stochastic processes. In: Annals of Mathematical Statistics. Band 23, 1952, S. 193–212.
-
- Breusch, T. S.; Pagan, A. R. (1979). "A Simple Test for Heteroskedasticity and Random Coefficient Variation". Econometrica. 47 (5): 1287–1294.
+\newpage
+# References
+```{r create_project-references}
+papaja::r_refs(file = "project-references.bib")
+```
+<div id = "refs"></div>
