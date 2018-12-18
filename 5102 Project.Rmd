@@ -6,8 +6,6 @@ geometry: margin=0.8in
 linestretch: 1.3
 ---
 
-# Introduction 
-
 According to Worldbank, “mortality indicators are important indicators of health status in a country.” This report aims at finding a series of predictors which can most parsimoniously and accurately describe and predict children mortality rate. The finds may be useful in the following ways:
 
 * Data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations
@@ -38,7 +36,6 @@ opts_chunk$set(echo = FALSE,
 
 set.seed(STAT5102)
 ```
-
 
 ```{python Import Python Libries}
 #import scipy
@@ -147,7 +144,7 @@ def regression_graph(true_values, fitted_values, residuals):
   ax1.set_ylabel("Fitted values")
   ax1.set_title("True Values v.s. Fitted values")
   
-  ax2.scatter(fitted_values, residuals)
+  ax2.scatter(fitted_values, residuals, s = 1)
   ax2.axhline(y = 0, color='r', linestyle = '--')
   ax2.set_xlabel("Fitted values")
   ax2.set_ylabel("Residual")
@@ -162,7 +159,7 @@ def response_vs_predictor_plot(X, Y, title, order = 1):
   for i in range(0, X.shape[1]):
     ax = fig.add_subplot(2,3,i+1)
     
-    ax.scatter(X.iloc[:,i], Y)
+    ax.scatter(X.iloc[:,i], Y, s = 1)
     ax.set_xlabel(X.columns.tolist()[i])
     ax.set_ylabel("U5 Mortality")
     
@@ -225,7 +222,6 @@ The World Bank data set contains relevant data from 214 countries and jurisdicti
 ```{r Read Data}
 world_bank = sas7bdat::read.sas7bdat("project_data.sas7bdat", debug=FALSE)
 ```
-
 
 First remove a few variables: `Year`, `YearCode`, `Country Name`, `Country Code`
 
@@ -346,7 +342,7 @@ Both Shapiro–Wilk (Shapiro, & Wilk, 1965) and Anderson-Darling (Anderson, & Da
 
 $H_0$: Residual follow a normal distribution
 
-$H_1$: residual do not follow a normal distribution
+$H_1$: Residual do not follow a normal distribution
 
 ```{r, results=TRUE}
 shapiro_test(OLS_residuals)
@@ -503,6 +499,12 @@ print(paste0("The 95% confidence interval for the lambda parameter that maximise
 
 The confidence interval covers zero, hence the best simple transformation for the response is logarithm.
 
+```{r Create Validation set for Lasso}
+Lasso_inTrain <- createDataPartition(world_bank_imputed$U5.Mortality, p=0.90, list=FALSE)
+Lasso_validation_set <- world_bank_imputed[c(-Lasso_inTrain),]
+Lasso_train_set <- world_bank_imputed[Lasso_inTrain,]
+```
+
 # Feature Selection Using Lasso Regression
 
 There are relatively few countries around the world compared to the amount of data we generate. After some initial wrangling, we only have 182 countries remaining in our dataset, with 15 first order predictors (and 300 if we consider interaction and second order terms!). Low number of observations put us at risk of overfitting the data, which inflates the variance of our model. Feature selection is therefore needed so we won't be using all 15 predictors (or 300). Also, from the correlation matrix presented above, we know that some predictors are highly correlated and are almot linearly dependent. Hence, we are not at risk of increasing bias if we know which ones to throw away.
@@ -510,19 +512,19 @@ There are relatively few countries around the world compared to the amount of da
 The Lasso regulisation impose a L1 penalty on the coefficients: every coefficient is being shrinked, and some even as low as zero. This is practically equal to feature selection since feature with zero coefficient has no effect in the model. 
 
 ```{r LassoCV}
-mod_cv <- hdi::lasso.cv(x =  as.matrix(dplyr::select(world_bank_imputed, -U5.Mortality)),
-                        y = log(world_bank_imputed$U5.Mortality),
+mod_cv <- hdi::lasso.cv(x =  as.matrix(dplyr::select(Lasso_train_set, -U5.Mortality)),
+                        y = log(Lasso_train_set$U5.Mortality),
                         nfolds = 5)
-lasso_terms <- names(world_bank_imputed)[mod_cv]
+lasso_terms <- names(Lasso_train_set)[mod_cv]
 lasso_terms
 ```
 ```{r Multiple Regression Using L1 norm terms, results=TRUE}
-Lasso_multiple_model <- lm(data = world_bank_imputed[c(lasso_terms, "U5.Mortality")], log(U5.Mortality) ~ .)
+Lasso_multiple_model <- lm(data = Lasso_train_set[c(lasso_terms, "U5.Mortality")], log(U5.Mortality) ~ .)
 summary(Lasso_multiple_model)$call
-Lasso_multiple_fitted_values <- predict(Lasso_multiple_model, newdata = world_bank_imputed)
+Lasso_multiple_fitted_values <- predict(Lasso_multiple_model, newdata = Lasso_train_set)
 Lasso_multiple_residuals <- resid(Lasso_multiple_model)
 Lasso_full_coef <- paste(round(coef(Lasso_multiple_model), 2))
-Lasso_f_test <- anova(lm(data = world_bank_imputed, log(U5.Mortality)~1), Lasso_multiple_model)
+Lasso_f_test <- anova(lm(data = Lasso_train_set, log(U5.Mortality)~1), Lasso_multiple_model)
 Lasso_f_p <- round(Lasso_f_test$`Pr(>F)`[2], 2)
 ```
 
@@ -541,7 +543,7 @@ sort(car::vif(Lasso_multiple_model), decreasing = TRUE)[1:2]
 ```
 
 ```{python}
-regression_graph(r.world_bank_imputed["U5.Mortality"].apply(np.log), r.Lasso_multiple_fitted_values, r.Lasso_multiple_residuals)
+regression_graph(r.Lasso_train_set["U5.Mortality"].apply(np.log), r.Lasso_multiple_fitted_values, r.Lasso_multiple_residuals)
 ```
 
 #### Normality Test
@@ -572,18 +574,24 @@ The following procedure attempts to select the 'best' set of predictor variables
 ## Algorithm
 Let $M_0$ denote the null model which contains no predictors, this model simply predicts the sample mean of each observation
 
-  - for $k = 1,2,...n$
-    1. Fit all ${n\choose k}$ models that contain exactly k predictors
-    2. Pick the best among these ${n\choose k}$ models, and call it $M_k$. Here the best is defined as having the smallest RSS, or an equivalent measure.
+* for $k = 1,2,...n$
+  1. Fit all ${n\choose k}$ models that contain exactly k predictors
+  2. Pick the best among these ${n\choose k}$ models, and call it $M_k$. Here the best is defined as having the smallest RSS, or an equivalent measure.
     
-  - Select the single best model among $M_0$, $M_1$,...,$M_n$ mean squared error and $R^2_{adj}$.
+* Select the single best model among $M_0$, $M_1$,...,$M_n$ mean squared error and $R^2_{adj}$.
+
+
+```{r Create Validation set for Bestsubset}
+best_sub_inTrain <- createDataPartition(world_bank_imputed$U5.Mortality, p=0.90, list=FALSE)
+best_sub_validation_set <- world_bank_imputed[c(-best_sub_inTrain),]
+best_sub_train_set <- world_bank_imputed[best_sub_inTrain,]
+```
 
 ```{python}
 #Initialization variables
-best_subset_data = r.world_bank_imputed
 
-X = best_subset_data.drop(["U5.Mortality"], axis = 1)
-Y = best_subset_data["U5.Mortality"].apply(np.log)
+X = r.best_sub_train_set.drop(["U5.Mortality"], axis = 1)
+Y = r.best_sub_train_set["U5.Mortality"].apply(np.log)
 
 #best_sub_features = find_best_subset(X, Y)
 best_sub_features = pd.read_pickle('best_sub_features.pkl')
@@ -649,8 +657,8 @@ print(best_subset_features[3:6])
 
 ```{python Plot Y Against X, render = TRUE}
 
-X = r.world_bank_imputed[best_subset_features]
-Y = r.world_bank_imputed["U5.Mortality"]
+X = r.best_sub_train_set[best_subset_features]
+Y = r.best_sub_train_set["U5.Mortality"]
 
 response_vs_predictor_plot(X, Y, "U5 Mortality v.s. Predictor", order = 2)
 ```
@@ -668,23 +676,28 @@ The following procedures can improve the above issues:
 
 
 ```{r}
-#Pick best subset variables
-log_best_subset = world_bank_imputed[c(py$best_subset_features, "U5.Mortality")]
+process_best_subset_data <- function(data, best_subset_features){
+  #Pick best subset variables
+  log_best_subset = data[c(best_subset_features, "U5.Mortality")]
 
-#log Y
-log_best_subset$U5.Mortality <- log(log_best_subset$U5.Mortality)
+  #log Y
+  log_best_subset$U5.Mortality <- log(log_best_subset$U5.Mortality)
+  
+  #log some variables
+  log_best_subset[,"Age.dependency.ratio.old"] <- log(log_best_subset[,"Age.dependency.ratio.old"])
+  log_best_subset[,"Mortality.gender.diff"] <- log(log_best_subset[,"Mortality.gender.diff"])
+  log_best_subset[,"GDP.per.capita..PPP..constant.20"] <- log(log_best_subset[,"GDP.per.capita..PPP..constant.20"])
+  
+  #there is a outliner in Age.dependency.ratio.old
+  log_best_subset <- log_best_subset[log_best_subset$Age.dependency.ratio.old >= 0,]
+  #remove outliners
+  # log_best_subset <- apply(log_best_subset, 2, remove_outliers)
+  # log_best_subset <- log_best_subset[complete.cases(log_best_subset),]
+  # log_best_subset <- as.data.frame(log_best_subset)
+}
 
-#log some variables
-log_best_subset[,"Age.dependency.ratio.old"] <- log(log_best_subset[,"Age.dependency.ratio.old"])
-log_best_subset[,"Mortality.gender.diff"] <- log(log_best_subset[,"Mortality.gender.diff"])
-log_best_subset[,"GDP.per.capita..PPP..constant.20"] <- log(log_best_subset[,"GDP.per.capita..PPP..constant.20"])
-
-#there is a outliner in Age.dependency.ratio.old
-log_best_subset <- log_best_subset[log_best_subset$Age.dependency.ratio.old >= 0,]
-#remove outliners
-# log_best_subset <- apply(log_best_subset, 2, remove_outliers)
-# log_best_subset <- log_best_subset[complete.cases(log_best_subset),]
-# log_best_subset <- as.data.frame(log_best_subset)
+log_best_subset_validate <- process_best_subset_data(best_sub_validation_set, py$best_subset_features)
+log_best_subset <- process_best_subset_data(best_sub_train_set, py$best_subset_features)
 ```
 
 
@@ -744,8 +757,15 @@ breusch_pagan_test(Best_sub_model)
 
 Through the above testing, we can prove the key assumptions of multiple regression are valid in this model. 
 
-# Conclusion
+# Model Selection
+```{r}
+Best_Subset_Validation_Result <-postResample(pred = predict.lm(Best_sub_model, log_best_subset_validate), obs = log_best_subset_validate$U5.Mortality)
+Lasso_Validation_Result <- postResample(pred = predict.lm(Lasso_multiple_model, Lasso_validation_set), obs = log(Lasso_validation_set$U5.Mortality))
+```
+According to validation, the Bestsubset model yields RMSE:`Best_Subset_Validation_Result[1]` and $R^2$: `Best_Subset_Validation_Result[2]`; Lasso model yields RMSE:`Lasso_Validation_Result[1]` and $R^2$: `Lasso_Validation_Result[2]`
+There are less error in Bestsubset's prediction, as well as more explained variance. Hence Bestsubset model is the model whcih performs best. 
 
+# Conclusion
 
 #Reference
 
