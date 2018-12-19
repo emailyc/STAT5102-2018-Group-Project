@@ -1,6 +1,6 @@
 ---
 title             : "A Regression Study of Children Mortality Rate"
-shorttitle        : "Children Mortality"
+shorttitle        : ""
 header-includes   : 
   - \pagenumbering{gobble}
 author: 
@@ -36,8 +36,8 @@ authornote: |
 
 abstract: |
   According to Worldbank, “mortality indicators are important indicators of health status in a country.” Data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations. 
-  The present study investigates children mortality rates using the dataset obtained from The World Bank: World Development Indicators. A Linear Model is used to perform a prediction analysis on the response variable: Mortality rate, using 6 predictor variables. The goal is to identify a subset of features in the dataset which best predicts Mortality rate of children under the age of five. Here we show the mortality rate of children under the age of 5 can be resonibly predicted by 6 other variables. 
-  The result identifies previously unknown relationship between children mortality rate and other existing variables. This shall allow researcher to better understand the relationship between children mortality and other variables. For example, data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations.
+  The present study investigates children mortality rates using the dataset obtained from The World Bank: World Development Indicators. A Linear Model is used to perform a prediction analysis on the response variable: Mortality rate, using 6 predictor variables. The goal is to identify a subset of features in the dataset which best predicts Mortality rate of children under the age of five. Here we show the mortality rate of children under the age of 5 can be responsibly predicted by 6 other variables. 
+  The result identifies previously unknown relationship between children mortality rate and other existing variables. This shall allow researchers to better understand the relationship between children mortality and other variables. For example, data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations.
 
   
   <!-- https://tinyurl.com/ybremelq -->
@@ -84,7 +84,6 @@ We report how we determined our sample size, all data exclusions (if any), all m
 
 ## Data analysis
 We used for all our analyses.
-
 
 # Results
 
