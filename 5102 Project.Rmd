@@ -5,7 +5,10 @@ fontsize: 10.5pt
 geometry: margin=0.8in
 linestretch: 1.3
 biblio-style: "apa"
-bibliography: "project-references.bib"
+bibliography: ["project-references.bib"]
+appendix:
+  - "appendix_a.Rmd"
+
 ---
 \setcounter{page}{3}
 
@@ -142,12 +145,12 @@ def regression_graph(true_values, fitted_values, residuals):
   ax2 = plt.subplot(222)
   ax3 = plt.subplot(212)
   
-  ax1.scatter(true_values, fitted_values, s = 3)
+  ax1.scatter(true_values, fitted_values, s = 5)
   ax1.set_xlabel("True Values")
   ax1.set_ylabel("Fitted values")
   ax1.set_title("True Values v.s. Fitted values")
   
-  ax2.scatter(fitted_values, residuals, s = 3)
+  ax2.scatter(fitted_values, residuals, s = 5)
   ax2.axhline(y = 0, color='r', linestyle = '--')
   ax2.set_xlabel("Fitted values")
   ax2.set_ylabel("Residual")
@@ -162,7 +165,7 @@ def response_vs_predictor_plot(X, Y, title, order = 1):
   for i in range(0, X.shape[1]):
     ax = fig.add_subplot(2,3,i+1)
     
-    ax.scatter(X.iloc[:,i], Y, s = 3)
+    ax.scatter(X.iloc[:,i], Y, s = 5)
     ax.set_xlabel(X.columns.tolist()[i])
     ax.set_ylabel("U5 Mortality")
     
@@ -297,7 +300,7 @@ Exploring the relationship between `U5.Mortality` and each of the predictor vari
 
 A heatmap give a rough idea to how variables correlate to each other. The lighter the colour, the higher the correlation between two variables. Here, the bottom tick labels are omitted since variables are grouped by names anyway. Variables have high correlation with neighboring variables. This is expected as variables which are similar in nature have similar names. 
 What's interesting is that instead of variables correlate individually, sets of variable often correlate highly with each other. This can be seen in the graph as there are many light blue boxes and dark blue boxes. For example, all Mortality related variables have high correlation with all Life Expectancy related variables. This can be a problem because there are many variables that are highly correlated to each other. Worst, there may be many variables that are linear combinations of others. One must be judicious when choosing variable in a regression analysis to avoid (multi)collinearity.
-```{r Correlation Heat Map, fig.height = 2, fig.width = 5}
+```{r Correlation Heat Map, fig.height = 2, fig.width = 8}
 cormat <- round(cor(world_bank_imputed),2)
 melted_cormat <- reshape2::melt(cormat)
 ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
@@ -331,9 +334,7 @@ regression_graph(r.world_bank_imputed["U5.Mortality"], r.OLS_fitted_values, r.OL
 
 #### Normality Test
 
-
-
-Both Shapiro–Wilk [@shapiro1965analysis] and Anderson-Darling [@anderson1952asymptotic] tests tests the null hypothesis that a statistical sample $x_1$, ..., $x_n$ came from a normally distributed population. Here, these tests are used to test for normality of the model residuals. Normality tests tend to be not very statistically powerful, hence more than one tests are used.
+Error in a regression model are expected to be i.i.d. Both Shapiro–Wilk [@shapiro1965analysis] and Anderson-Darling [@anderson1952asymptotic] tests tests the null hypothesis that a statistical sample $x_1$, ..., $x_n$ came from a normally distributed population. Here, these tests are used to test for residuals normality. Normality tests tend to be not very statistically powerful, hence more than one tests are used.
 
 $H_0$: Residual follow a normal distribution
 
@@ -349,7 +350,7 @@ anderson_test(OLS_residuals)
 
 #### Heteroskedasticity test
 
-The **Breusch–Pagan test** [@breusch1979simple] is used to test for heteroskedasticity in a linear regression model.
+Residuals are expected to be not correlated with the predictor variable. The **Breusch–Pagan test** [@breusch1979simple] is used to test for heteroskedasticity in a linear regression model.
 
 $H_0$: Variance of the residuals do not dependent on the values of the independent variables.
 
@@ -359,7 +360,7 @@ $H_1$: Variance of the residuals is dependent on the values of the independent v
 breusch_pagan_test(OLS_model)
 ```
 
-None of the Normality test passed; the key assumptions of regression are valid in this model. 
+The assumptions mentioned has to be confirmed before any testing conclusion can be drawn. None of the Normality test passed; the key assumptions of regression are valid in this model. 
 
 The bottom line is, we cannot use Simple Linear Regression (OLS) simply because high correlation between predictor and outcome. OLS will not be further discussed. 
 
@@ -761,8 +762,9 @@ Lasso_Validation_Result <- postResample(pred = predict.lm(Lasso_multiple_model, 
 According to validation, the Best subset model yields RMSE:`Best_Subset_Validation_Result[1]` and $R^2$: `Best_Subset_Validation_Result[2]`; Lasso model yields RMSE:`Lasso_Validation_Result[1]` and $R^2$: `Lasso_Validation_Result[2]`
 There are less error in Best subset's prediction, as well as more explained variance. Hence Best subset model is the model of choice. 
 
-# Conclusion
+# Discussion
 
+Three different family member of the Generalised Linear Model are examined in this report: Ordinary Least Square, Multiple Regression, and Lasso Regression. Four models are generated and two are chosen for validaation. Two models are chosen because they consider the non-linear relationship between the response and the predictors. Results from these two models are both satisfactory as they both show statistical sigificance and agreeing to all assumptions imposed on linear regression. The Best subset model is chosen to be the model of choice because of its performance in validation test. 
 
 \newpage
 # References
