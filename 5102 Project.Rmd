@@ -1,14 +1,10 @@
 ---
-title: 
 output: pdf_document
 fontsize: 10.5pt
 geometry: margin=0.8in
 linestretch: 1.3
-biblio-style: "apa"
 bibliography: ["project-references.bib"]
-appendix:
-  - "appendix_a.Rmd"
-
+csl: apa.csl
 ---
 \setcounter{page}{3}
 
@@ -29,6 +25,7 @@ library("ggplot2")
 library("mice")
 library("caret")
 library("reticulate")
+library("papaja")
 
 use_condaenv(condaenv = "stat5102_", required = TRUE)
 opts_chunk$set(echo = FALSE,
@@ -55,59 +52,16 @@ import itertools
 ```
 
 ```{r Self Defined Functions R}
-corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper", "lower"),
-                     result=c("none", "html", "latex")){
-    #Compute correlation matrix
-    require(Hmisc)
-    x <- as.matrix(x)
-    correlation_matrix<-rcorr(x, type=method[1])
-    R <- correlation_matrix$r # Matrix of correlation coeficients
-    p <- correlation_matrix$P # Matrix of p-value 
-    
-    ## Define notions for significance levels; spacing is important.
-    mystars <- ifelse(p < .0001, "****", ifelse(p < .001, "*** ", ifelse(p < .01, "**  ", ifelse(p < .05, "*   ", "    "))))
-    
-    ## trunctuate the correlation matrix to two decimal
-    R <- format(round(cbind(rep(-1.11, ncol(x)), R), 2))[,-1]
-    
-    ## build a new matrix that includes the correlations with their apropriate stars
-    Rnew <- matrix(paste(R, mystars, sep=""), ncol=ncol(x))
-    diag(Rnew) <- paste(diag(R), " ", sep="")
-    rownames(Rnew) <- colnames(x)
-    colnames(Rnew) <- paste(colnames(x), "", sep="")
-    
-    ## remove upper triangle of correlation matrix
-    if(removeTriangle[1]=="upper"){
-      Rnew <- as.matrix(Rnew)
-      Rnew[upper.tri(Rnew, diag = TRUE)] <- ""
-      Rnew <- as.data.frame(Rnew)
-    }
-    
-    ## remove lower triangle of correlation matrix
-    else if(removeTriangle[1]=="lower"){
-      Rnew <- as.matrix(Rnew)
-      Rnew[lower.tri(Rnew, diag = TRUE)] <- ""
-      Rnew <- as.data.frame(Rnew)
-    }
-    
-    ## remove last column and return the correlation matrix
-    Rnew <- cbind(Rnew[1:length(Rnew)-1])
-    if (result[1]=="none") return(Rnew)
-    else{
-      if(result[1]=="html") print(xtable::xtable(Rnew), type="html")
-      else print(xtable::xtable(Rnew), type="latex") 
-    }
-} 
 
 shapiro_test <- function(residuals){
   shapiro <- shapiro.test(residuals)
   print("According to Shapiro-Wilk test of normality, and alpha at .01,")
   if (shapiro$p.value > ALPHA) {
     print("residuals look Gaussian (fail to reject H0)")
-  } else {
-    print("residuals do not look Gaussian (reject H0)")
-    }  
-}
+    } else {
+      print("residuals do not look Gaussian (reject H0)")
+    }
+  }
 
 anderson_test <- function(residuals){
   anderson <- nortest::ad.test(residuals)
@@ -218,7 +172,10 @@ def find_best_subset(X, Y, up_to = 10):
       numb_features.append(len(combo))  
 
   #Store in DataFrame
-  best_sub_features = pd.DataFrame({'numb_features': numb_features,'MSE': MSE_list, 'Adj_R_squared':adj_R_squared_list,'features':feature_list})
+  best_sub_features = pd.DataFrame({'numb_features': numb_features,
+  'MSE': MSE_list, 
+  'Adj_R_squared':adj_R_squared_list,
+  'features':feature_list})
   return best_sub_features
 ```
 
@@ -237,16 +194,26 @@ The variable `Age dependency ratio (% of working-age population)`"` includes peo
 The original "Age dependency ratio (% of working-age population)" is renamed to `"`Age dependency ratio (% of working-age population)`.
 ```{r}
 #Drop the column Year and YearCode
-world_bank = world_bank[!names(world_bank) %in% c("Year", "YearCode", "Country.Name", "Country.Code")]
+world_bank = world_bank[!names(world_bank) %in% c("Year", 
+                                                  "YearCode", 
+                                                  "Country.Name", 
+                                                  "Country.Code")]
 
-colnames(world_bank)[colnames(world_bank)=="Age.dependency.ratio....of.worki"] <- "Age.dependency.ratio.old"
-colnames(world_bank)[colnames(world_bank)=="Age.dependency.ratio..young....o"] <- "Age.dependency.ratio.young"
-colnames(world_bank)[colnames(world_bank)=="Mortality.rate..infant..per.1.00"] <- "Infant.Mortality"
-colnames(world_bank)[colnames(world_bank)=="Mortality.rate..under.5..per.1.0"] <- "U5.Mortality"
-colnames(world_bank)[colnames(world_bank)=="Mortality.rate..under.5..male..p"] <- "Male.Mortality"
-colnames(world_bank)[colnames(world_bank)=="Mortality.rate..under.5..female"] <- "Female.Mortality"
+colnames(world_bank)[colnames(world_bank) == 
+                       "Age.dependency.ratio....of.worki"] <- "Age.dependency.ratio.old"
+colnames(world_bank)[colnames(world_bank) == 
+                       "Age.dependency.ratio..young....o"] <- "Age.dependency.ratio.young"
+colnames(world_bank)[colnames(world_bank) == 
+                       "Mortality.rate..infant..per.1.00"] <- "Infant.Mortality"
+colnames(world_bank)[colnames(world_bank) == 
+                       "Mortality.rate..under.5..per.1.0"] <- "U5.Mortality"
+colnames(world_bank)[colnames(world_bank) ==
+                       "Mortality.rate..under.5..male..p"] <- "Male.Mortality"
+colnames(world_bank)[colnames(world_bank) ==
+                       "Mortality.rate..under.5..female"] <- "Female.Mortality"
 
-world_bank["Age.dependency.ratio.old"] = world_bank["Age.dependency.ratio.old"] - world_bank["Age.dependency.ratio.young"]
+world_bank["Age.dependency.ratio.old"] =
+  world_bank["Age.dependency.ratio.old"] - world_bank["Age.dependency.ratio.young"]
 ```
 
 ```{r}
@@ -257,7 +224,7 @@ head(world_bank, 5)
 
 The data set contains some obviously problematic data. For instance, some variables contains more then 90% missing data. Here, we remove variables with more than 5% missing data, and remove cases with more than 5 missing fields. These cut offs are set objectively deeming that any variables or cases with certain number missing data would undermine the its usefulness. After removal, `r nrow(world_bank)` cases and `ncol(world_bank)` variables remains.
 
-Please refer to the Appendix for an updated list of variables after variable removal. 
+Please refer to the Appendix for an updated list of variables after variable removal.
 
 ```{r Remove Missings}
 #remove case where Mortality rate, under-5 (per 1,000 live births) is Nan
@@ -279,7 +246,11 @@ Missing data are imputed using Multiple (or also called Multivariate) Imputation
 Chained Equations (MICE). Many variables in the original dataset are linear combinations of others. Hence parametric approach for estimating missing data is impossible because the dataset is singular. This report uses data imputed by means of Random Forest, which is a non-parametric method.
 Random Forest has an additional benifit of not requiring data to be missing at random (which is otherwise required for parametric MICE) [@shah2014comparison]. 
 ```{r MICE Impute}
-world_bank_imputed <- mice(data = world_bank, m = 10, method="rf", seed = STAT5102, printFlag = FALSE)
+world_bank_imputed <- mice(data = world_bank, 
+                           m = 10,
+                           method="rf",
+                           seed = STAT5102,
+                           printFlag = FALSE)
 world_bank_imputed <- complete(world_bank_imputed)
 ```
 
@@ -289,7 +260,10 @@ The data is now ready for analysis.
 
 ### Distributions of **Mortality Rate Under 5, Per 1000/Births**
 ```{r Y Distribution, fig.height = 2.5, fig.width = 8}
-qplot(world_bank_imputed$U5.Mortality, geom="histogram", bins = sqrt(nrow(world_bank_imputed)), xlab = "U5.Mortality", ylab = "Count") 
+qplot(world_bank_imputed$U5.Mortality,
+      geom="histogram",
+      bins = sqrt(nrow(world_bank_imputed)),
+      xlab = "U5.Mortality", ylab = "Count") 
 ```
 
 The response variable for this project is the quantitative variable, **Mortality Rate Under 5, Per 1000/Births**; let's call it `U5.Mortality` from here onward. 
@@ -377,23 +351,32 @@ infant mortality rate is removed.
 
 ```{r Mortality Gender Differenes Variables}
 #add gender difference
-world_bank_imputed$Mortality.gender.diff <- abs(world_bank_imputed$Male.Mortality - world_bank_imputed$Female.Mortality)
+world_bank_imputed$Mortality.gender.diff <-
+  abs(world_bank_imputed$Male.Mortality - world_bank_imputed$Female.Mortality)
   
 #remove mortality rate for male and female
-world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Male.Mortality", "Female.Mortality"))]
+world_bank_imputed <-
+  world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Male.Mortality", "Female.Mortality"))]
 
 #remove infant mortality rate
-world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Infant.Mortality"))]
+world_bank_imputed <-
+  world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Infant.Mortality"))]
 ```
 
 The same is done for Life Expectancy: "Life expectancy at birth", both male and female, are combined and is called `Life.exp.gender.diff`.
 ```{r Life expectency Gender Differenes Variables}
 #do the same thing for Life expectancy 
-world_bank_imputed["Life.exp.gender.diff"] <- abs(world_bank_imputed["Life.expectancy.at.birth..female"] - world_bank_imputed["Life.expectancy.at.birth..male.."])
+world_bank_imputed["Life.exp.gender.diff"] <-
+  abs(world_bank_imputed["Life.expectancy.at.birth..female"] -
+        world_bank_imputed["Life.expectancy.at.birth..male.."])
 
 
 #remove Life expectency for male and female
-world_bank_imputed <- world_bank_imputed[,-which(names(world_bank_imputed) %in% c("Life.expectancy.at.birth..female", "Life.expectancy.at.birth..male..", "Life.expectancy.at.birth..total"))]
+world_bank_imputed <-
+  world_bank_imputed[,-which(names(world_bank_imputed) %in%
+                               c("Life.expectancy.at.birth..female", 
+                                 "Life.expectancy.at.birth..male..",
+                                 "Life.expectancy.at.birth..total"))]
 ```
 
 # Multiple Regression
@@ -409,7 +392,9 @@ Multiple_residuals <- resid(Multiple_model)
 
 
 ```{python}
-regression_graph(r.world_bank_imputed["U5.Mortality"], r.Multiple_fitted_values, r.Multiple_residuals)
+regression_graph(r.world_bank_imputed["U5.Mortality"],
+r.Multiple_fitted_values,
+r.Multiple_residuals)
 ```
 
 #### Normality Test
@@ -489,7 +474,10 @@ Simultaneous transformation on predictor variables may be required to maintain l
 ```{r Box-Cox, render = FALSE}
 bc <- MASS::boxcox(lm(world_bank_imputed$U5.Mortality~1), plotit = FALSE)
 bcCI <- range(bc$x[bc$y > max(bc$y)-qchisq(0.95,1)/2])
-print(paste0("The 95% confidence interval for the lambda parameter that maximises the log-likelihood function is: ", round(bcCI[1], 4), ", ",round(bcCI[2], 4)))
+print(paste0(
+  "The 95% confidence interval for the lambda parameter that maximises the log-likelihood function is: ",
+  round(bcCI[1], 4),
+  ", ",round(bcCI[2], 4)))
 ```
 
 The confidence interval covers zero, hence the best simple transformation for the response is logarithm.
@@ -514,7 +502,8 @@ lasso_terms <- names(Lasso_train_set)[mod_cv]
 lasso_terms
 ```
 ```{r Multiple Regression Using L1 norm terms, results=TRUE}
-Lasso_multiple_model <- lm(data = Lasso_train_set[c(lasso_terms, "U5.Mortality")], log(U5.Mortality) ~ .)
+Lasso_multiple_model <- lm(data = Lasso_train_set[c(lasso_terms, "U5.Mortality")],
+                           log(U5.Mortality) ~ .)
 summary(Lasso_multiple_model)$call
 Lasso_multiple_fitted_values <- predict(Lasso_multiple_model, newdata = Lasso_train_set)
 Lasso_multiple_residuals <- resid(Lasso_multiple_model)
@@ -538,7 +527,9 @@ sort(car::vif(Lasso_multiple_model), decreasing = TRUE)[1:2]
 ```
 
 ```{python}
-regression_graph(r.Lasso_train_set["U5.Mortality"].apply(np.log), r.Lasso_multiple_fitted_values, r.Lasso_multiple_residuals)
+regression_graph(r.Lasso_train_set["U5.Mortality"].apply(np.log),
+r.Lasso_multiple_fitted_values,
+r.Lasso_multiple_residuals)
 ```
 
 #### Normality Test
@@ -597,8 +588,10 @@ best_sub_features = pd.read_pickle('best_sub_features.pkl')
 There is a total of `r nrow(py$best_sub_features)` subsets.
 
 ```{python}
-min_MSE = best_sub_features[best_sub_features.groupby('numb_features')['MSE'].transform(min) == best_sub_features['MSE']]
-max_adj_R2 = best_sub_features[best_sub_features.groupby('numb_features')['Adj_R_squared'].transform(max) == best_sub_features['Adj_R_squared']]
+min_MSE = (best_sub_features[best_sub_features.groupby('numb_features')['MSE'].transform(min) ==
+best_sub_features['MSE']])
+max_adj_R2 = (best_sub_features[best_sub_features.groupby('numb_features')['Adj_R_squared'].transform(max) ==
+best_sub_features['Adj_R_squared']])
 ```
 
 #### Best Subsets
@@ -621,11 +614,14 @@ best_sub_features['max_R_squared'] = best_sub_features.groupby('numb_features')[
 fig = plt.figure(figsize = (16,6))
 
 ax = fig.add_subplot(1, 2, 1)
-ax.scatter(best_sub_features.numb_features,best_sub_features.MSE, alpha = .2, color = 'darkblue')
+ax.scatter(best_sub_features.numb_features,best_sub_features.MSE, alpha = .2,
+color = 'darkblue')
 ax.set_xlabel('# Predictor')
 ax.set_ylabel('MSE')
 ax.set_title('MSE - Best subset selection')
-ax.plot(best_sub_features.numb_features, best_sub_features.min_MSE,color = 'r', label = 'Best subset')
+ax.plot(best_sub_features.numb_features,
+best_sub_features.min_MSE,color = 'r',
+label = 'Best subset')
 ax.legend()
 
 ax = fig.add_subplot(1, 2, 2)
@@ -683,7 +679,8 @@ process_best_subset_data <- function(data, best_subset_features){
   #log some variables
   log_best_subset[,"Age.dependency.ratio.old"] <- log(log_best_subset[,"Age.dependency.ratio.old"])
   log_best_subset[,"Mortality.gender.diff"] <- log(log_best_subset[,"Mortality.gender.diff"])
-  log_best_subset[,"GDP.per.capita..PPP..constant.20"] <- log(log_best_subset[,"GDP.per.capita..PPP..constant.20"])
+  log_best_subset[,"GDP.per.capita..PPP..constant.20"] <-
+    log(log_best_subset[,"GDP.per.capita..PPP..constant.20"])
   
   #there is a outliner in Age.dependency.ratio.old
   log_best_subset <- log_best_subset[log_best_subset$Age.dependency.ratio.old >= 0,]
@@ -693,7 +690,8 @@ process_best_subset_data <- function(data, best_subset_features){
   # log_best_subset <- as.data.frame(log_best_subset)
 }
 
-log_best_subset_validate <- process_best_subset_data(best_sub_validation_set, py$best_subset_features)
+log_best_subset_validate <- process_best_subset_data(best_sub_validation_set,
+                                                     py$best_subset_features)
 log_best_subset <- process_best_subset_data(best_sub_train_set, py$best_subset_features)
 ```
 
@@ -756,10 +754,15 @@ Through the above testing, we can prove the key assumptions of multiple regressi
 
 # Model Selection
 ```{r}
-Best_Subset_Validation_Result <-postResample(pred = predict.lm(Best_sub_model, log_best_subset_validate), obs = log_best_subset_validate$U5.Mortality)
-Lasso_Validation_Result <- postResample(pred = predict.lm(Lasso_multiple_model, Lasso_validation_set), obs = log(Lasso_validation_set$U5.Mortality))
+Best_Subset_Validation_Result <-
+  postResample(pred = predict.lm(Best_sub_model, 
+                                 log_best_subset_validate),
+               obs = log_best_subset_validate$U5.Mortality)
+Lasso_Validation_Result <-
+  postResample(pred = predict.lm(Lasso_multiple_model, Lasso_validation_set),
+               obs = log(Lasso_validation_set$U5.Mortality))
 ```
-According to validation, the Best subset model yields RMSE:`Best_Subset_Validation_Result[1]` and $R^2$: `Best_Subset_Validation_Result[2]`; Lasso model yields RMSE:`Lasso_Validation_Result[1]` and $R^2$: `Lasso_Validation_Result[2]`
+According to validation, the Best subset model yields RMSE:`r Best_Subset_Validation_Result[1]` and $R^2$: `r Best_Subset_Validation_Result[2]`; Lasso model yields RMSE:`r Lasso_Validation_Result[1]` and $R^2$: `r Lasso_Validation_Result[2]`
 There are less error in Best subset's prediction, as well as more explained variance. Hence Best subset model is the model of choice. 
 
 # Discussion
@@ -768,7 +771,18 @@ Three different family member of the Generalised Linear Model are examined in th
 
 \newpage
 # References
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
 ```{r create_project-references}
 papaja::r_refs(file = "project-references.bib")
 ```
 <div id = "refs"></div>
+
+```{r child = 'README.Rmd'}
+```
+
+# Code Appendix
+```{r ref.label=knitr::all_labels(), echo = T, eval = F, results = 'asis'}
+```
