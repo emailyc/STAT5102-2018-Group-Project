@@ -1,0 +1,106 @@
+---
+title             : "A Regression Study of Children Mortality Rate"
+shorttitle        : "Children Mortality"
+header-includes   : 
+  - \pagenumbering{gobble}
+author: 
+  - name          : "Yiu Chung, WONG"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    address       : "603A, Wong Foo Yuan Blg, Chung Chi RD, The Chinese University Of Hong Kong"
+    email         : "s1155017920@link.cuhk.edu.hk"
+  - name          : "Tsz Wing, WONG"
+    affiliation   : "1"
+    email         : "s1004666311@link.cuhk.edu.hk"
+  - name          : "Yiu Fung Frankie, CHAN"
+    affiliation   : "1"
+    email         : "s1155010561@link.cuhk.edu.hk"
+  - name          : "Wai Lan, LI"
+    affiliation   : "1"
+    email         : "s1004666311@link.cuhk.edu.hk"  
+
+affiliation:
+  - id            : "1"
+    institution   : "The Chinese University Of Hong Kong"
+
+authornote: |
+  Yiu Chung Wong, Department of Statistics, The Chinese University Of Hong Kong.
+  
+  Tsz Wing Wong, Department of Statistics, The Chinese University Of Hong Kong.
+  
+  Yiu Fung Frankie Chan, Department of Statistics, The Chinese University Of Hong Kong.
+  
+  Wai Lan Li, Department of Statistics, The Chinese University Of Hong Kong.
+
+  This report was supported in part by class from the M.Sc. in Data Science and Business Statistics Program, Department of Statistics, The Chinese University Of Hong Kong.
+
+abstract: |
+  According to Worldbank, “mortality indicators are important indicators of health status in a country.” Data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations. 
+  The present study investigates children mortality rates using the dataset obtained from The World Bank: World Development Indicators. A Linear Model is used to perform a prediction analysis on the response variable: Mortality rate, using 6 predictor variables. The goal is to identify a subset of features in the dataset which best predicts Mortality rate of children under the age of five. Here we show the mortality rate of children under the age of 5 can be resonibly predicted by 6 other variables. 
+  The result identifies previously unknown relationship between children mortality rate and other existing variables. This shall allow researcher to better understand the relationship between children mortality and other variables. For example, data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations.
+
+  
+  <!-- https://tinyurl.com/ybremelq -->
+  
+keywords          : "Mortality, Develope, Regression, Lasso, Best subset"
+
+bibliography      : ["project-references.bib"]
+
+floatsintext      : no
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+
+#documentclass     : "apa6"
+classoption       : "man"
+output            : papaja::apa6_pdf
+---
+
+
+
+```{r setup, include = FALSE}
+library("papaja")
+```
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+
+
+# Methods
+We report how we determined our sample size, all data exclusions (if any), all manipulations, and all measures in the study. [@shapiro1965analysis]
+
+## Participants
+
+## Material
+
+## Procedure
+
+## Data analysis
+We used for all our analyses.
+
+
+# Results
+
+# Discussion
+
+
+\newpage
+
+# References
+```{r create_r-references}
+r_refs(file = "project-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup

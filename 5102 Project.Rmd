@@ -8,13 +8,6 @@ csl: apa.csl
 ---
 \setcounter{page}{3}
 
-According to Worldbank, “mortality indicators are important indicators of health status in a country.” This report aims at finding a series of predictors which can most parsimoniously and accurately describe and predict children mortality rate. The finds may be useful in the following ways:
-
-* Data on the incidence and prevalence of diseases are frequently unavailable. A prediction in mortality rate can help identify vulnerable populations
-* To compare socio economic development across countries.
-* To better understand the relation between children mortality and other variables. This makes the goal of tackling children mortality more elucidating.
- 
-To identify a subset of features in the dataset which best predicts Mortality rate of children under the age of five. 
 ```{r Markdown Setup, echo = FALSE, results = FALSE, warning = FALSE, message = FALSE}
 #some constants
 STAT5102 <- 5102
@@ -244,7 +237,7 @@ rownames(world_bank) <- NULL
 
 Missing data are imputed using Multiple (or also called Multivariate) Imputation by
 Chained Equations (MICE). Many variables in the original dataset are linear combinations of others. Hence parametric approach for estimating missing data is impossible because the dataset is singular. This report uses data imputed by means of Random Forest, which is a non-parametric method.
-Random Forest has an additional benifit of not requiring data to be missing at random (which is otherwise required for parametric MICE) [@shah2014comparison]. 
+Random Forest has an additional benefit of not requiring data to be missing at random (which is otherwise required for parametric MICE) [@shah2014comparison]. 
 ```{r MICE Impute}
 world_bank_imputed <- mice(data = world_bank, 
                            m = 10,
@@ -253,8 +246,6 @@ world_bank_imputed <- mice(data = world_bank,
                            printFlag = FALSE)
 world_bank_imputed <- complete(world_bank_imputed)
 ```
-
-The data is now ready for analysis.
 
 # Exploratory Data Analysis
 
@@ -293,7 +284,7 @@ Let's start by looking at the response variable, i.e. the Mortality rates
 
 From the correlation heatmap, all Mortality related variables are highly correlated. Highly correlated predictors can lead to instability in our estimator, as well as increased variance. 
 
-Not only do these variables covary, their value are also extremely close to each other. It is very tempting to just use a one of these variables to predict the response variable. Let's pick one of these predictors to predict `U5.Mortality`? Here `Mortality rate, infant (per 1,000 births)` is used.
+Not only do these variables co-vary, their value are also extremely close to each other. It is very tempting to just use a one of these variables to predict the response variable. Let's pick one of these predictors to predict `U5.Mortality`? Here `Mortality rate, infant (per 1,000 births)` is used.
 
 ```{r OLS Regression, results = TRUE}
 OLS_model <- lm(data = world_bank_imputed, U5.Mortality ~ Infant.Mortality)
@@ -338,7 +329,7 @@ The assumptions mentioned has to be confirmed before any testing conclusion can 
 
 The bottom line is, we cannot use Simple Linear Regression (OLS) simply because high correlation between predictor and outcome. OLS will not be further discussed. 
 
-How about the other two mortality indicators? After some eyeball investigation, it is not difficult to see that the response variable is merely the average of Male/Female mortality rate. Hence these two variables will not be included in analysis; they should not be included in any formal analysis because one could argue that this is a form of data leakage. However, it might be interesting to see how the DIFFERENCE in Male/Female mortality rate affects the response variable. Therefore  a new variable is added: DIFFERENCE in Male/Female mortality rate. Note that this is a linear combination of two variables which is originally highly correlated to the response. The outcome is still highly ocrrelated to the response but having one fewer variable is likely to reduce variance. 
+How about the other two mortality indicators? After some eyeball investigation, it is not difficult to see that the response variable is merely the average of Male/Female mortality rate. Hence these two variables will not be included in analysis; they should not be included in any formal analysis because one could argue that this is a form of data leakage. However, it might be interesting to see how the DIFFERENCE in Male/Female mortality rate affects the response variable. Therefore  a new variable is added: DIFFERENCE in Male/Female mortality rate. Note that this is a linear combination of two variables which is originally highly correlated to the response. The outcome is still highly correlated to the response but having one fewer variable is likely to reduce variance. 
 
 Finally, because of the following:
 
@@ -431,7 +422,7 @@ $$\mathrm{VIF_i}= \frac{1}{1-R^2_i}$$
 sort(car::vif(Multiple_model), decreasing = TRUE)[1:2]
 ```
 
-The fisrst two VIF indicates enormous milticolinearity. For example, `Birth rate crude/1.000 people` has VIF well above 90.
+The first two VIF indicates enormous milticolinearity. For example, `Birth rate crude/1.000 people` has VIF well above 90.
 Many of these predictor variables are linear combinations of others. They provide no additional information; their presence increase variance in coefficient estimation and reduce statistical power in proving the coefficients are useful. According to Hair et al.[-@hairjr], a score of 10 and above is considered problematic and that particular variable should be removed. 
 
 # Regression Model
@@ -454,7 +445,7 @@ A continuous variable Y is being regressed on a set of Xs. The model assumes Y t
 * Gaussian Error
 * LHS of the model be strictly positive.
 
-The forst two assumptions have already been violated.
+The first two assumptions have already been violated.
 
 Note that the sum on the RHS can sometimes be negative depending on the input and coefficients. Unfortunately, the response variable `U5.Mortality` can not take negative values; the model is broken when ever the sum on of the RHS comes out negative. Worst, as mentioned in the exploratory data analysis section, `U5.Mortality` exhibits Poisson properties: the variance in `U5.Mortality` is somewhat correlated to its mean. 
 
@@ -637,7 +628,7 @@ plt.show()
 
 The graph on the left illustrates the mean square error (mse) for each model among each $k$ number of predictor variables. The red line connects models with the lowest mse in each $k$. The graph on the right shows the same but in $R^2_{adj}$. 
 
-The graphs that the more predictor variables are included, the lower the mse and higher the $R^2_{adj}$. However, both red lines level off at 6 predictors. This suggests the difference in model performance between 6 and more predictor variables are miniscule. In the spirit of parsimony, one should opt for a simpler model with fewer terms. This minimises colinearity and variance in estimates of predictor coefficients.   
+The graphs shows that the more predictor variables are included, the lower the mse and higher the $R^2_{adj}$. However, both red lines level off at 6 predictors. This suggests the difference in model performance between 6 and more predictor variables are minuscule. In the spirit of parsimony, one should opt for a model with fewer terms. This minimises colinearity and variance in estimates of predictor coefficients.   
 
 ```{python Print Best Subset Names, results = TRUE}
 best_subset_features = min_MSE[min_MSE["numb_features"] == 6]["features"].tolist()
@@ -664,7 +655,7 @@ The regression plot gives some insights:
 
 The following procedures can improve the above issues:
 
-* as mention a few sections back, log transformation on both the response and predictor to obtain or maintain linear regression relation.
+* Log transformation on both the response and predictor to obtain or maintain linear regression relation.
 * Remove outliners with high cook distance and high influence. 
 
 
@@ -767,7 +758,7 @@ There are less error in Best subset's prediction, as well as more explained vari
 
 # Discussion
 
-Three different family member of the Generalised Linear Model are examined in this report: Ordinary Least Square, Multiple Regression, and Lasso Regression. Four models are generated and two are chosen for validaation. Two models are chosen because they consider the non-linear relationship between the response and the predictors. Results from these two models are both satisfactory as they both show statistical sigificance and agreeing to all assumptions imposed on linear regression. The Best subset model is chosen to be the model of choice because of its performance in validation test. 
+Three family member of the Generalised Linear Model are examined in this report: Ordinary Least Square, Multiple Regression, and Lasso Regression. Four models are generated and two are chosen for validation. Two models are chosen because they consider the non-linear relationship between the response and the predictors. Results from these two models are both satisfactory as they both show statistical significance and agreeing to all assumptions imposed on linear regression. The Best subset model is chosen to be the model of choice because of its performance in validation test. 
 
 \newpage
 # References
@@ -780,9 +771,11 @@ papaja::r_refs(file = "project-references.bib")
 ```
 <div id = "refs"></div>
 
+\newpage
 ```{r child = 'README.Rmd'}
 ```
 
+\newpage
 # Code Appendix
 ```{r ref.label=knitr::all_labels(), echo = T, eval = F, results = 'asis'}
 ```
